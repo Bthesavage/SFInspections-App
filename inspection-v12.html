@@ -1,0 +1,3457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SF Inspect">
+<meta name="theme-color" content="#080c14">
+<title>SF Field Inspection</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-placeholder&libraries=places&callback=initMaps" async defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#080c14;--surface:#0f1520;--surface2:#161e2e;--surface3:#1c2438;
+  --border:#1e2d45;--border2:#243550;
+  --accent:#00d4ff;--accent2:#7c5cfc;--accent3:#ff6b35;
+  --green:#00e5a0;--amber:#ffb340;--red:#ff4566;
+  --text:#e8eef8;--muted:#5a7090;--muted2:#8090b0;
+  --font:'DM Sans',sans-serif;--display:'Syne',sans-serif;--mono:'DM Mono',monospace;
+  --r:12px;--r2:16px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--font);color:var(--text)}
+#app{height:100%;display:flex;flex-direction:column;max-width:500px;margin:0 auto;position:relative}
+
+/* ── HEADER ── */
+.hdr{background:linear-gradient(180deg,#0d1525 0%,#080c14 100%);border-bottom:1px solid var(--border);padding:max(env(safe-area-inset-top),14px) 18px 12px;flex-shrink:0;position:relative;z-index:50}
+.hdr-top{display:flex;align-items:center;justify-content:space-between}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.hdr h1{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:.02em}
+.hdr .sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+.hdr-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:5px 10px;border-radius:8px;font-size:11px;cursor:pointer;font-family:var(--font);white-space:nowrap}
+.prog-bar{height:2px;background:var(--border);margin-top:10px;border-radius:1px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:1px;transition:width .5s ease}
+
+/* ── SCREEN NAV ── */
+.screen-nav{display:flex;gap:4px;overflow-x:auto;padding:10px 18px 0;scrollbar-width:none;flex-shrink:0;background:var(--bg)}
+.screen-nav::-webkit-scrollbar{display:none}
+.snav-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:20px;font-size:10px;white-space:nowrap;cursor:pointer;font-family:var(--font);flex-shrink:0;display:flex;align-items:center;gap:4px;transition:all .15s}
+.snav-btn.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
+.snav-btn.done{border-color:var(--green);color:var(--green)}
+.snav-btn .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.6}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pad{padding:16px 18px}
+
+/* ── SETUP SCREEN ── */
+.hero{text-align:center;padding:24px 0 20px}
+.hero .logo{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 14px;box-shadow:0 0 40px rgba(0,212,255,.2)}
+.hero h2{font-family:var(--display);font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--muted2);font-size:13px;margin-top:6px}
+
+/* ── FORM ELEMENTS ── */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:12px}
+.section-card h3{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.field-row{margin-bottom:12px}
+.field-row:last-child{margin-bottom:0}
+.field-lbl{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.field-inp{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 12px;border-radius:10px;font-size:15px;font-family:var(--font);outline:none;-webkit-appearance:none}
+.field-inp:focus{border-color:var(--accent)}
+.field-inp::placeholder{color:var(--muted)}
+.field-sel{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 12px;border-radius:10px;font-size:14px;font-family:var(--font);outline:none;-webkit-appearance:none;cursor:pointer}
+.field-ta{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 12px;border-radius:10px;font-size:14px;font-family:var(--font);resize:none;outline:none;line-height:1.5;-webkit-appearance:none}
+.field-ta:focus,.field-sel:focus{border-color:var(--accent)}
+.field-ta::placeholder{color:var(--muted)}
+
+/* ── CHIP SELECTORS ── */
+.chip-grid{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:7px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap}
+.chip.sel{background:rgba(0,212,255,.12);border-color:var(--accent);color:var(--accent);font-weight:600}
+.chip.sel2{background:rgba(124,92,252,.12);border-color:var(--accent2);color:var(--accent2);font-weight:600}
+.chip.sel3{background:rgba(0,229,160,.12);border-color:var(--green);color:var(--green);font-weight:600}
+.chip-2col{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.yn-row{display:flex;gap:8px}
+.yn-btn{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:10px;border-radius:10px;font-size:13px;cursor:pointer;font-family:var(--font);text-align:center;transition:all .15s;font-weight:500}
+.yn-btn.yes{background:rgba(0,229,160,.12);border-color:var(--green);color:var(--green)}
+.yn-btn.no{background:rgba(255,69,102,.1);border-color:var(--red);color:var(--red)}
+
+/* ── ACTION BUTTONS ── */
+.btn-primary{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;border:none;padding:15px;border-radius:var(--r2);font-size:15px;font-weight:700;cursor:pointer;font-family:var(--display);letter-spacing:.02em}
+.btn-primary:disabled{opacity:.3}
+.btn-secondary{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:13px;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font);margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-green{background:linear-gradient(135deg,#059669,#047857);border:none;color:white}
+.btn-blue{background:linear-gradient(135deg,var(--accent),#0099cc);border:none;color:#000;font-weight:700}
+
+/* ── PHOTO ITEMS ── */
+.photo-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden}
+.photo-item.done{border-color:rgba(0,229,160,.3)}
+.photo-item.req{border-left:3px solid var(--amber)}
+.photo-item.req.done{border-left:3px solid var(--green)}
+.photo-hdr{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.photo-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;transition:all .2s}
+.photo-chk.done{background:var(--green);border-color:var(--green);color:#000}
+.photo-info{flex:1}
+.photo-lbl{font-size:13px;font-weight:500}
+.req-tag{background:rgba(255,179,64,.15);color:var(--amber);font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:6px;text-transform:uppercase;letter-spacing:.05em}
+.photo-hint{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.photo-cnt{font-size:11px;color:var(--muted);font-family:var(--mono);flex-shrink:0}
+.photo-body{padding:0 14px 14px;border-top:1px solid var(--border)}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
+.thumb{position:relative;width:68px;height:68px;border-radius:8px;overflow:hidden;background:var(--surface2);border:1px solid var(--border2)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb-x{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.75);border:none;color:white;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center}
+.cam-row{display:flex;gap:8px;margin-top:8px}
+.cam-btn{flex:1;background:var(--surface2);border:1px dashed var(--border2);color:var(--muted2);padding:11px;border-radius:10px;font-size:12px;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:5px}
+.cam-btn.pri{background:rgba(0,212,255,.08);border-color:var(--accent);color:var(--accent)}
+.note-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:10px;margin-bottom:4px}
+
+/* ── COMPASS ── */
+.compass-wrap{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:10px}
+.compass-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700;margin-bottom:10px}
+.compass-dial{width:100px;height:100px;margin:0 auto 10px;position:relative}
+.compass-ring{width:100%;height:100%;border-radius:50%;border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;position:relative}
+.compass-needle{position:absolute;width:4px;height:40px;top:50%;left:50%;transform-origin:bottom center;transform:translateX(-50%) translateY(-100%)}
+.needle-n{width:100%;height:50%;background:var(--red);border-radius:2px 2px 0 0}
+.needle-s{width:100%;height:50%;background:var(--muted);border-radius:0 0 2px 2px}
+.compass-n{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--red);font-family:var(--mono)}
+.compass-dirs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dir-btn{background:var(--surface);border:2px solid var(--border2);color:var(--muted2);padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--display);text-align:center;transition:all .15s}
+.dir-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.1)}
+.compass-result{text-align:center;font-size:12px;color:var(--muted2);margin-top:8px;line-height:1.5}
+.compass-result strong{color:var(--accent)}
+
+/* ── UNIT CARDS ── */
+.unit-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);margin-bottom:10px;overflow:hidden}
+.unit-hdr{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.unit-badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:700;font-family:var(--mono)}
+.badge-occ{background:rgba(0,229,160,.15);color:var(--green)}
+.badge-vac{background:rgba(0,212,255,.15);color:var(--accent)}
+.badge-down{background:rgba(255,69,102,.15);color:var(--red)}
+.unit-body{padding:0 14px 14px;border-top:1px solid var(--border)}
+.unit-num{font-family:var(--display);font-size:15px;font-weight:700}
+.unit-cond{font-size:11px;color:var(--muted);margin-top:2px}
+.add-unit-btn{width:100%;background:var(--surface);border:2px dashed var(--border2);color:var(--accent);padding:14px;border-radius:var(--r2);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--display);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+
+/* ── RATING STARS ── */
+.rating-row{display:flex;gap:6px;margin-top:6px}
+.rating-btn{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--mono);text-align:center;transition:all .15s}
+.rating-btn.r1{}.rating-btn.r2{}.rating-btn.r3{}.rating-btn.r4{}.rating-btn.r5{}
+.rating-btn.sel-r{background:rgba(0,212,255,.15);border-color:var(--accent);color:var(--accent)}
+
+/* ── SECTION TABS ── */
+.sec-tabs{display:flex;gap:5px;overflow-x:auto;padding:0 0 2px;scrollbar-width:none;margin-bottom:14px}
+.sec-tabs::-webkit-scrollbar{display:none}
+.sec-tab{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:20px;font-size:11px;white-space:nowrap;cursor:pointer;font-family:var(--font);flex-shrink:0;transition:all .15s}
+.sec-tab.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700}
+.sec-tab.done{border-color:var(--green);color:var(--green)}
+.sec-tab .cnt{background:rgba(255,255,255,.2);border-radius:8px;padding:1px 5px;margin-left:3px;font-size:9px}
+.sec-tab.done .cnt{background:rgba(0,229,160,.2)}
+
+/* ── BANK BANNER ── */
+.bank-note{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.15);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#90c8d8;line-height:1.6}
+.bank-note strong{color:var(--accent)}
+
+/* ── SUMMARY ── */
+.sum-hero{text-align:center;padding:20px 0 16px}
+.sum-hero .icon{font-size:52px;margin-bottom:8px}
+.sum-hero h2{font-family:var(--display);font-size:22px;font-weight:800}
+.sum-hero p{color:var(--muted2);font-size:13px;margin-top:4px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:10px}
+.stat-card h3{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;font-weight:700}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-lbl{font-size:13px}
+.stat-val{font-size:13px;font-family:var(--mono);color:var(--accent)}
+.stat-val.ok{color:var(--green)}
+.stat-val.warn{color:var(--amber)}
+.miss-item{font-size:12px;color:var(--amber);padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.miss-item:last-child{border-bottom:none}
+
+/* Folder preview */
+.folder-tree{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:10px}
+.folder-tree h3{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;font-weight:700}
+.ftree-root{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.ftree-child{font-size:12px;color:var(--muted2);padding:4px 0 4px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ftree-child:last-child{border-bottom:none}
+.ftree-badge{background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:10px;padding:1px 6px;font-family:var(--mono);color:var(--accent)}
+
+/* Drive status */
+.drive-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;font-size:12px}
+.drive-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.drive-dot.on{background:var(--green)}
+.drive-dot.off{background:var(--muted)}
+.drive-dot.spin{background:var(--amber);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Upload steps */
+.up-steps{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.up-steps h3{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;font-weight:700}
+.up-step{font-size:12px;padding:4px 0;display:flex;align-items:center;gap:8px;color:var(--muted)}
+.up-step.done{color:var(--green)}
+.up-step.active{color:var(--amber)}
+
+/* Toast */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:11px 20px;border-radius:12px;font-size:13px;z-index:999;max-width:88vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+
+/* Modal overlay */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2) var(--r2) 0 0;padding:20px 18px max(env(safe-area-inset-bottom),20px);width:100%;max-height:90vh;overflow-y:auto}
+.modal h3{font-family:var(--display);font-size:18px;font-weight:800;margin-bottom:16px}
+.modal-close{float:right;background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+
+.hidden{display:none}
+/* ── DAILY DASHBOARD ── */
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.dash-title{font-family:var(--display);font-size:18px;font-weight:800}
+.dash-date{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.assign-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:10px;overflow:hidden}
+.assign-card.done{border-color:rgba(0,229,160,.3);opacity:.7}
+.assign-top{padding:12px 14px;display:flex;align-items:flex-start;gap:10px}
+.assign-status{width:20px;height:20px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.assign-status.done{background:var(--green);border-color:var(--green);color:#000}
+.assign-status.inprog{background:var(--amber);border-color:var(--amber);color:#000}
+.assign-info{flex:1;min-width:0}
+.assign-addr{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.assign-bank{font-size:11px;color:var(--muted);margin-top:2px}
+.assign-contact{font-size:11px;color:var(--muted2);margin-top:2px}
+.assign-actions{display:flex;gap:6px;padding:0 14px 12px}
+.act-btn{flex:1;padding:9px 6px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);border:1px solid var(--border2);background:var(--surface2);color:var(--muted2);display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s}
+.act-btn.call{border-color:var(--green);color:var(--green);background:rgba(0,229,160,.08)}
+.act-btn.text{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.08)}
+.act-btn.start{border-color:var(--accent2);color:var(--accent2);background:rgba(124,92,252,.08)}
+.act-btn.edit{border-color:var(--border2);color:var(--muted)}
+
+/* Swipe to dismiss */
+.swipe-wrap{position:relative;overflow:hidden;border-radius:var(--r2);margin-bottom:10px}
+.swipe-card{position:relative;transition:transform .25s ease;touch-action:pan-y;cursor:grab}
+.swipe-card.swiping{transition:none}
+.swipe-bg{position:absolute;inset:0;background:var(--red);border-radius:var(--r2);display:flex;align-items:center;justify-content:flex-end;padding-right:20px;color:white;font-size:13px;font-weight:700;opacity:0;transition:opacity .2s}
+.swipe-bg.visible{opacity:1}
+.swipe-hint{font-size:10px;color:var(--muted);text-align:center;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:4px}
+
+/* Calendar pill */
+.cal-pill{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:6px 12px;font-size:11px;color:var(--accent);display:inline-flex;align-items:center;gap:5px;cursor:pointer;margin-bottom:12px}
+.cal-pill.linked{background:rgba(0,229,160,.08);border-color:rgba(0,229,160,.2);color:var(--green)}
+/* Calendar picker modal */
+.cal-list{max-height:300px;overflow-y:auto}
+.cal-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.cal-item:last-child{border-bottom:none}
+.cal-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.cal-item-name{font-size:13px;font-weight:500}
+.cal-item-acc{font-size:11px;color:var(--muted)}
+.cal-check{margin-left:auto;color:var(--green);font-size:16px}
+.add-assign-btn{width:100%;background:var(--surface);border:2px dashed var(--border2);color:var(--accent);padding:14px;border-radius:var(--r2);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--display);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px}
+.empty-dash{text-align:center;padding:32px 20px;color:var(--muted)}
+.empty-dash .empty-icon{font-size:48px;margin-bottom:12px}
+.empty-dash p{font-size:13px;line-height:1.6}
+/* Today's inspections */
+.today-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:14px}
+.today-card h3{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:10px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.today-item{padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.today-item:last-child{border-bottom:none}
+.today-addr{font-size:13px;font-weight:500}
+.today-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.today-badge{font-size:10px;padding:2px 8px;border-radius:6px;font-family:var(--mono)}
+.tb-done{background:rgba(0,229,160,.15);color:var(--green)}
+.tb-inprog{background:rgba(255,179,64,.15);color:var(--amber)}
+/* ClickUp status */
+.cu-bar{background:rgba(123,104,238,.08);border:1px solid rgba(123,104,238,.2);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;font-size:12px}
+.cu-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cu-dot.on{background:#7B68EE}
+.cu-dot.off{background:var(--muted)}
+.pb{padding-bottom:max(env(safe-area-inset-bottom),20px)}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.small-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hdr" id="hdr">
+    <div class="hdr-top">
+      <div class="hdr-left">
+        <div class="hdr-icon">🏢</div>
+        <div>
+          <h1 id="hdr-title">SF Field Inspection</h1>
+          <div class="sub" id="hdr-sub">Configure your inspection</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="hdr-btn" id="home-btn" style="display:none" onclick="goHome()">🏠</button>
+        <button class="hdr-btn" id="hdr-btn" style="display:none" onclick="goBack()">← Back</button>
+      </div>
+    </div>
+    <div class="prog-bar" id="prog-bar" style="display:none"><div class="prog-fill" id="prog-fill"></div></div>
+  </div>
+  <div id="screen-nav" style="display:none">
+    <div class="screen-nav" id="snav-inner"></div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- Assignment modal -->
+<div class="modal-bg hidden" id="assign-modal">
+  <div class="modal" id="assign-modal-body"></div>
+</div>
+
+<!-- Unit modal -->
+<div class="modal-bg hidden" id="unit-modal">
+  <div class="modal" id="unit-modal-body"></div>
+</div>
+
+<input type="file" accept="image/*" capture="environment" id="cam-in" style="display:none">
+<input type="file" accept="image/*" multiple id="upl-in" style="display:none">
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+const GCL_ID = '608140101331-krho9nv7021d0c262b0j199omb8m1jss.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.readonly';
+const FOLDER_MAP = {exterior:'1. Exterior',commercial:'1. Exterior',other:'1. Exterior',interior:'2. Interior',occupied:'2. Interior',vacant:'2. Interior',deferred:'3. Deferred Maintenance'};
+// ClickUp config
+const CU_TOKEN = 'pk_204006275_I5ALBG497SO24OMIBFOCSU0UWXJKTJA7';
+const CU_REPORTER = 'cclugas.work@gmail.com';
+let CU_LIST_ID = localStorage.getItem('sf_cu_list_id') || null;
+let CU_LIST_NAME = localStorage.getItem('sf_cu_list_name') || null;
+
+// ── CALENDAR STATE ──────────────────────────────────────────────────────────
+let calendarId = localStorage.getItem('sf_calendar_id') || null;
+let calendarName = localStorage.getItem('sf_calendar_name') || null;
+let calendarEvents = [];
+
+// ── GOOGLE ─────────────────────────────────────────────────────────────────
+let gToken=null, tClient=null;
+function initGoogle(){
+  if(typeof google==='undefined'){setTimeout(initGoogle,200);return;}
+  if(tClient) return; // already initialized
+  tClient=google.accounts.oauth2.initTokenClient({client_id:GCL_ID,scope:DRIVE_SCOPE,callback:r=>{
+    if(r.error){toast('Sign-in failed: '+r.error,'err');return;}
+    gToken=r.access_token; toast('✅ Connected to Google!','ok'); render(); if(calendarId) loadCalendarEvents();
+  }});
+}
+function signIn(){
+  if(!tClient){
+    // Try to init first then sign in
+    if(typeof google==='undefined'){
+      toast('Google loading, please wait a moment...','err');
+      setTimeout(signIn, 1500);
+      return;
+    }
+    initGoogle();
+    setTimeout(()=>{
+      if(tClient) tClient.requestAccessToken();
+      else toast('Could not connect to Google. Check your connection.','err');
+    }, 800);
+    return;
+  }
+  tClient.requestAccessToken();
+}
+
+// ── DATA ───────────────────────────────────────────────────────────────────
+const BANKS=[
+  {id:'ncb',name:'National Co-op Bank'},{id:'mt',name:'M&T Bank'},
+  {id:'santander',name:'Santander'},{id:'wells',name:'Wells Fargo'},
+  {id:'habib',name:'Habib Bank'},{id:'other',name:'Other'},
+];
+const PROP_TYPES=['Multifamily','Mixed Use','Retail','Office','Hospitality','Industrial','Mini Storage','Mobile Home','Healthcare','Education','Congregate Care','Cooperative'];
+const SECTION_TYPES=[
+  {id:'exterior',label:'Exterior'},{id:'interior',label:'Interior'},
+  {id:'deferred',label:'Deferred Maint.'},{id:'commercial',label:'Commercial'},
+  {id:'occupied',label:'Occupied Units'},{id:'vacant',label:'Vacant Units'},
+];
+const SCREENS=['setup','facts','mgmt','condition','units','photos','summary'];
+const SCREEN_LABELS={setup:'Setup',facts:'Property Facts',mgmt:'Management',condition:'Condition',units:'Units',photos:'Photos',summary:'Summary'};
+
+const CL={
+  ncb:{photoMin:25,note:'25 photos min. DM photos don\'t count. Fire extinguisher REQUIRED.',sections:{
+    exterior:[
+      {id:'addr_verify',label:'Address Verification',req:true,hint:'Property address sign or number clearly visible',compass:false},
+      {id:'broad',label:'Broad View / Glamour Shot',req:true,hint:'Wide establishing shot from street',compass:false},
+      {id:'signage',label:'Signage',req:true,hint:'Property name sign',compass:false},
+      {id:'roof',label:'Roof',req:true,hint:'Always attempt access',compass:false},
+      {id:'north',label:'Exterior – North Wall',req:false,hint:'Standing South, photographing North face',compass:true},
+      {id:'south',label:'Exterior – South Wall',req:false,hint:'Standing North, photographing South face',compass:true},
+      {id:'east',label:'Exterior – East Wall',req:false,hint:'Standing West, photographing East face',compass:true},
+      {id:'west',label:'Exterior – West Wall',req:false,hint:'Standing East, photographing West face',compass:true},
+      {id:'ingress',label:'Ingress / Egress',req:false},{id:'parking',label:'Parking Lot',req:false},
+      {id:'grounds',label:'Grounds / Landscaping',req:false},{id:'street',label:'Street Views',req:false},
+      {id:'surrounding',label:'Adjacent / Surrounding Properties',req:true,hint:'REQUIRED — order returned without this!',compass:false},
+    ],
+    interior:[
+      {id:'boiler',label:'Boiler Room',req:true},{id:'hvac',label:'HVAC',req:true},
+      {id:'fireext',label:'Fire Extinguisher / Fire Protection',req:true,hint:'REQUIRED — inspection returned without!'},
+      {id:'lobby',label:'Interior Lobby / Office',req:false},{id:'common_int',label:'Common Areas – Interior',req:false},
+      {id:'amenities_int',label:'Amenities – Interior',req:false},
+    ],
+    deferred:[{id:'dm',label:'Deferred Maintenance Items',req:true,hint:'ALL Fair/Poor items — include exact location in caption'}],
+    occupied:[{id:'ol',label:'Living Room',req:true,hint:'Unit # in caption'},{id:'ok',label:'Kitchen',req:true},{id:'ob',label:'Bathroom',req:true},{id:'obd',label:'Bedroom',req:true}],
+    vacant:[{id:'vl',label:'Living Room',req:true,hint:'Unit # in caption'},{id:'vk',label:'Kitchen',req:true},{id:'vb',label:'Bathroom',req:true},{id:'vbd',label:'Bedroom',req:true}],
+  }},
+  mt:{photoMin:15,note:'15 photos min. 4 photos per unit. DM photos don\'t count toward minimum.',sections:{
+    exterior:[
+      {id:'addr_verify',label:'Address Verification',req:true,hint:'Property address sign or number clearly visible',compass:false},
+      {id:'broad',label:'Broad View / Glamour Shot',req:true,compass:false},
+      {id:'signage',label:'Signage',req:true,compass:false},
+      {id:'roof',label:'Roof',req:true,hint:'Always attempt access',compass:false},
+      {id:'north',label:'Exterior – North Wall',req:false,compass:true,hint:'Standing South, photographing North face'},
+      {id:'south',label:'Exterior – South Wall',req:false,compass:true,hint:'Standing North, photographing South face'},
+      {id:'east',label:'Exterior – East Wall',req:false,compass:true,hint:'Standing West, photographing East face'},
+      {id:'west',label:'Exterior – West Wall',req:false,compass:true,hint:'Standing East, photographing West face'},
+      {id:'ingress',label:'Ingress / Egress',req:false},{id:'parking',label:'Parking Lot',req:false},
+      {id:'grounds',label:'Grounds / Landscaping',req:false},{id:'street',label:'Street Views',req:false},
+      {id:'surrounding',label:'Adjacent / Surrounding Properties',req:false,compass:false},
+      {id:'amenities_ext',label:'Amenities – Exterior',req:false},{id:'common_ext',label:'Common Areas – Exterior',req:false},
+    ],
+    interior:[
+      {id:'boiler',label:'Boiler Room',req:true},{id:'hvac',label:'HVAC',req:true},
+      {id:'lobby',label:'Interior Lobby / Office',req:false},{id:'common_int',label:'Common Areas – Interior',req:false},
+      {id:'amenities_int',label:'Amenities – Interior',req:false},
+    ],
+    deferred:[
+      {id:'dm',label:'Deferred Maintenance Items (Fair or Poor)',req:true,hint:'Include exact location in caption'},
+      {id:'ls',label:'Life Safety Issues',req:false},
+    ],
+    occupied:[{id:'ol',label:'Living Room',req:true,hint:'4 photos per unit'},{id:'ok',label:'Kitchen',req:true},{id:'ob',label:'Bathroom',req:true},{id:'obd',label:'Bedroom',req:true}],
+    vacant:[{id:'vl',label:'Living Room',req:true,hint:'4 photos per unit'},{id:'vk',label:'Kitchen',req:true},{id:'vb',label:'Bathroom',req:true},{id:'vbd',label:'Bedroom',req:true}],
+  }},
+  santander:{photoMin:30,note:'30 photos min. 8 unit photos required. GFCI + CO detector REQUIRED.',sections:{
+    exterior:[
+      {id:'addr_verify',label:'Address Verification',req:true,hint:'Property address sign or number clearly visible',compass:false},
+      {id:'signage',label:'Signage',req:true,compass:false},
+      {id:'broad',label:'Broad View / Glamour Shot',req:true,compass:false},
+      {id:'north',label:'Exterior – North Wall',req:false,compass:true,hint:'Standing South, photographing North face'},
+      {id:'south',label:'Exterior – South Wall',req:false,compass:true,hint:'Standing North, photographing South face'},
+      {id:'east',label:'Exterior – East Wall',req:false,compass:true,hint:'Standing West, photographing East face'},
+      {id:'west',label:'Exterior – West Wall',req:false,compass:true,hint:'Standing East, photographing West face'},
+      {id:'grounds',label:'Grounds / Landscaping',req:false},{id:'ingress',label:'Ingress / Egress',req:false},
+      {id:'parking',label:'Parking Lot',req:false},{id:'roof',label:'Roof',req:false,hint:'If accessible'},
+      {id:'street',label:'Street Views / Surrounding Properties',req:false},
+      {id:'surrounding',label:'Adjacent Properties',req:false,compass:false},
+      {id:'common_ext',label:'Common Areas – Exterior',req:false},{id:'amenities_ext',label:'Amenities – Exterior',req:false},
+      {id:'ada_ext',label:'ADA Compliance – Exterior',req:false},
+    ],
+    interior:[
+      {id:'common_int',label:'Common Areas – Interior',req:false},{id:'amenities_int',label:'Amenities – Interior',req:false},
+      {id:'ada_int',label:'ADA Compliance – Interior',req:false},
+      {id:'gfci',label:'GFCI Outlet',req:true,hint:'REQUIRED — kitchens/bathrooms within 6ft of water'},
+      {id:'co',label:'Carbon Monoxide (CO) Detector',req:true,hint:'REQUIRED in each inspected unit'},
+    ],
+    deferred:[
+      {id:'dm',label:'All Deferred Maintenance',req:true},{id:'haz',label:'All Hazardous Items',req:true},
+      {id:'hk',label:'Housekeeping Issues',req:false},{id:'tr',label:'Transient Issues',req:false},
+    ],
+    occupied:[{id:'ol',label:'Living Room',req:true},{id:'ok',label:'Kitchen',req:true},{id:'ob',label:'Bathroom',req:true},{id:'obd',label:'Bedroom',req:true}],
+    vacant:[{id:'vl',label:'Living Room',req:true},{id:'vk',label:'Kitchen',req:true},{id:'vb',label:'Bathroom',req:true},{id:'vbd',label:'Bedroom',req:true}],
+  }},
+};
+CL.wells=JSON.parse(JSON.stringify(CL.mt)); CL.wells.note='Follow general Spectrum guidelines. Min 15 photos.';
+CL.habib=JSON.parse(JSON.stringify(CL.mt)); CL.habib.note='Follow general Spectrum guidelines. Min 15 photos.';
+CL.other=JSON.parse(JSON.stringify(CL.mt)); CL.other.note='General inspection. Min 15 photos.';
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+function getInitialState(){
+  return {
+    screen:'setup',
+    bank:null, sections:[], address:'', city:'', state:'', zip:'', propName:'', propType:'',
+    borrower:'', borrowerContact:'', lender:'',
+    numBuildings:'', yearBuilt:'', yearRenovated:'', numUnits:'', sqFt:'',
+    occupancyPct:'', numOccupied:'', numVacant:'', numDown:'',
+    roofAccess:'', elevator:'', numElevators:'', sprinkler:'', amenities:'',
+    numParking:'', areaDistressed:'', newConstruction:'', neighborhood:'',
+    inspDate:'', inspTime:'',
+    mgmtCompany:'', mgmtContact:'', mgmtTitle:'', mgmtPhone:'', mgmtEmail:'',
+    mgmtLength:'', mgmtChange:'', mgmtVisitFreq:'',
+    onSiteName:'', onSitePhone:'', onSiteEmail:'',
+    rentRoll:'',
+    cuTaskId:'', cuTaskUrl:'', driveLink:'',
+    limMgmtUnavail:'', limMgmtExp:'', limUnitsUnavail:'', limCommonUnavail:'', limSnow:'', limOther:'', limComment:'',
+    condSite:'', condSiteTrend:'', condSiteNote:'',
+    condMech:'', condMechTrend:'', condMechNote:'',
+    condExt:'', condExtTrend:'', condExtNote:'',
+    condRoof:'', condRoofTrend:'', condRoofNote:'',
+    condOccUnit:'', condOccUnitTrend:'', condOccUnitNote:'',
+    condVacUnit:'', condVacUnitTrend:'', condVacUnitNote:'',
+    condCommon:'', condCommonTrend:'', condCommonNote:'',
+    condAmen:'', condAmenTrend:'', condAmenNote:'',
+    condEnv:'', condEnvTrend:'', condEnvNote:'',
+    overallRating:'', overallComment:'',
+    lifeSafety:'', lifeSafetyNote:'',
+    dmOutstanding:'', dmOutstandingNote:'',
+    envCondition:'', envNote:'',
+    adaCompliance:'', adaNote:'',
+    critCrime:'', critInsurance:'', critLifeSafety:'', critDownUnits:'', critCodeViol:'', critComment:'',
+    cond_ingress:'',cond_parking:'',cond_striping:'',cond_drainage:'',cond_retainingwalls:'',
+    cond_sidewalks:'',cond_signage:'',cond_sitelighting:'',cond_roofcondition:'',cond_flashing:'',
+    cond_gutters:'',cond_foundations:'',cond_exteriorwalls:'',cond_stairsrailings:'',
+    cond_glazingwindows:'',cond_storefronts:'',cond_exteriordoors:'',cond_amenities_ext:'',
+    cond_loadingdocks:'',cond_paint:'',cond_sidingtrim:'',cond_balconies:'',cond_security:'',
+    cond_refuse:'',cond_lobbies:'',cond_hallways:'',cond_stairways:'',cond_interiorwalls:'',
+    cond_paintingwallcover:'',cond_flooring:'',cond_ceilings:'',cond_interiordoors:'',
+    cond_windows:'',cond_kitchens:'',cond_appliances:'',cond_fixtures:'',cond_cabinets:'',
+    cond_plumbing:'',cond_electrical:'',cond_lighting:'',cond_hvacsystem:'',cond_basement:'',
+    cond_mechanicalrooms:'',cond_boilers:'',cond_laundryrooms:'',cond_elevators:'',
+    cond_sprinklers:'',cond_amenities_int:'',
+    siteActivity:'',siteLocation:'',siteElevation:'',adjLeft:'',adjRight:'',
+    nbhState:'',nbhCondition:'',leaseSigns:'',saleSigns:'',surroundingArea:[],compareNbh:'',
+    condOverall:'',condAccessibility:'',condAppearance:'',condVisibility:'',
+    condLandscaping:'',condPaving:'',condLighting:'',condWindows:'',condWalls:'',
+    condRoof:'',condExtPaint:'',
+    improvementsThisYear:'',improvementsPlanned:'',
+    hasDM:'',dmType:'',dmLifeSafety:'',dmDescription:'',
+    marijuana:'',medMarijuana:'',sexBusiness:'',ustCert:'',
+    heatPaidBy:'', waterPaidBy:'', electricPaidBy:'', gasPaidBy:'', trashPaidBy:'', cablePaidBy:'',
+    fireDamage:'', fireDamageDetails:'', codeViolations:'', codeDetails:'',
+    accompanied:'', accompaniedPhone:'',
+    boilerNote:'', exteriorAmenitiesNote:'',
+    units:[], photoData:{}, activeSection:null, expandedItem:null,
+  };
+}
+
+let S={
+  screen:'setup',
+  // Setup
+  bank:null, sections:[], address:'', city:'', state:'', zip:'', propName:'', propType:'',
+  borrower:'', borrowerContact:'', lender:'',
+  // Facts
+  numBuildings:'', yearBuilt:'', yearRenovated:'', numUnits:'', sqFt:'',
+  occupancyPct:'', numOccupied:'', numVacant:'', numDown:'',
+  roofAccess:'', elevator:'', sprinkler:'', amenities:'',
+  numParking:'', areaDistressed:'', newConstruction:'', neighborhood:'',
+  inspDate:'', inspTime:'',
+  // Management
+  mgmtCompany:'', mgmtContact:'', mgmtTitle:'', mgmtPhone:'', mgmtEmail:'',
+  mgmtLength:'', mgmtChange:'',
+  heatPaidBy:'', waterPaidBy:'', electricPaidBy:'', gasPaidBy:'', trashPaidBy:'', cablePaidBy:'',
+  fireDamage:'', fireDamageDetails:'', codeViolations:'', codeDetails:'',
+  accompanied:'', accompaniedPhone:'',
+  // On-site contact
+  onSiteName:'', onSitePhone:'', onSiteEmail:'',
+  // Rent roll
+  rentRoll:'',
+  // ClickUp
+  cuTaskId:'', cuTaskUrl:'', driveLink:'',
+  // Limitations (Santander)
+  limMgmtUnavail:'', limMgmtExp:'', limUnitsUnavail:'', limCommonUnavail:'', limSnow:'', limOther:'',limComment:'',
+  // Condition
+  condSite:'', condSiteTrend:'', condSiteNote:'',
+  condMech:'', condMechTrend:'', condMechNote:'',
+  condExt:'', condExtTrend:'', condExtNote:'',
+  condRoof:'', condRoofTrend:'', condRoofNote:'',
+  condOccUnit:'', condOccUnitTrend:'', condOccUnitNote:'',
+  condVacUnit:'', condVacUnitTrend:'', condVacUnitNote:'',
+  condCommon:'', condCommonTrend:'', condCommonNote:'',
+  condAmen:'', condAmenTrend:'', condAmenNote:'',
+  condEnv:'', condEnvTrend:'', condEnvNote:'',
+  overallRating:'', overallComment:'',
+  // CMSA condition fields (item by item)
+  cond_ingress:'',cond_parking:'',cond_striping:'',cond_drainage:'',cond_retainingwalls:'',
+  cond_sidewalks:'',cond_signage:'',cond_sitelighting:'',cond_roofcondition:'',cond_flashing:'',
+  cond_gutters:'',cond_foundations:'',cond_exteriorwalls:'',cond_stairsrailings:'',
+  cond_glazingwindows:'',cond_storefronts:'',cond_exteriordoors:'',cond_amenities_ext:'',
+  cond_loadingdocks:'',cond_paint:'',cond_sidingtrim:'',cond_balconies:'',cond_security:'',
+  cond_refuse:'',cond_lobbies:'',cond_hallways:'',cond_stairways:'',cond_interiorwalls:'',
+  cond_paintingwallcover:'',cond_flooring:'',cond_ceilings:'',cond_interiordoors:'',
+  cond_windows:'',cond_kitchens:'',cond_appliances:'',cond_fixtures:'',cond_cabinets:'',
+  cond_plumbing:'',cond_electrical:'',cond_lighting:'',cond_hvacsystem:'',cond_basement:'',
+  cond_mechanicalrooms:'',cond_boilers:'',cond_laundryrooms:'',cond_elevators:'',
+  cond_sprinklers:'',cond_amenities_int:'',
+  // Wells Fargo specific
+  siteActivity:'',siteLocation:'',siteElevation:'',adjLeft:'',adjRight:'',
+  nbhState:'',nbhCondition:'',leaseSigns:'',saleSigns:'',surroundingArea:[],compareNbh:'',
+  condOverall:'',condAccessibility:'',condAppearance:'',condVisibility:'',
+  condLandscaping:'',condPaving:'',condLighting:'',condWindows:'',condWalls:'',
+  condRoof:'',condExtPaint:'',
+  // Improvements
+  improvementsThisYear:'',improvementsPlanned:'',
+  // DM
+  hasDM:'',dmType:'',dmLifeSafety:'',dmDescription:'',
+  // Special questions
+  marijuana:'',medMarijuana:'',sexBusiness:'',ustCert:'',
+  // Santander extras
+  lifeSafety:'', lifeSafetyNote:'',
+  dmOutstanding:'', dmOutstandingNote:'',
+  envCondition:'', envNote:'',
+  adaCompliance:'', adaNote:'',
+  critCrime:'', critInsurance:'', critLifeSafety:'', critDownUnits:'', critCodeViol:'', critComment:'',
+  boilerNote:'', exteriorAmenitiesNote:'',
+  // Units
+  units:[],
+  // Photos
+  photoData:{}, activeSection:null, expandedItem:null,
+};
+
+let pendingItemId=null, isUploading=false, uploadSteps=[], editingUnit=null;
+let compassHeading=0, compassActive=false, compassWatchId=null;
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+const cl=()=>S.bank?CL[S.bank]:null;
+const bankName=()=>(BANKS.find(b=>b.id===S.bank)||{}).name||'';
+const isSantander=()=>S.bank==='santander';
+const currentItems=()=>{const c=cl();if(!c||!S.activeSection)return[];return c.sections[S.activeSection]||[];};
+const secDone=sid=>(cl()?.sections[sid]||[]).filter(i=>(S.photoData[i.id]?.photos||[]).length>0).length;
+const secTotal=sid=>(cl()?.sections[sid]||[]).length;
+const totalPhotos=()=>Object.values(S.photoData).reduce((s,d)=>s+(d.photos||[]).length,0);
+const allItems=()=>S.sections.flatMap(s=>cl()?.sections[s]||[]);
+const doneItems=()=>allItems().filter(i=>(S.photoData[i.id]?.photos||[]).length>0).length;
+const prog=()=>{const a=allItems().length;return a?(doneItems()/a)*100:0;};
+const canStart=()=>S.bank&&S.sections.length>0&&S.address.trim();
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const missingReq=()=>{const c=cl();if(!c)return[];const o=[];S.sections.forEach(sid=>{(c.sections[sid]||[]).forEach(item=>{if(item.req&&!(S.photoData[item.id]?.photos?.length>0)){const l=(SECTION_TYPES.find(s=>s.id===sid)||{}).label||sid;o.push(`${l}: ${item.label}`);}});});return o;};
+
+function pbyCount(){const cnt={'1. Exterior':0,'2. Interior':0,'3. Deferred Maintenance':0,'4. Units Inspected':0};S.sections.forEach(sid=>{const fn=FOLDER_MAP[sid]||'1. Exterior';(cl()?.sections[sid]||[]).forEach(item=>{cnt[fn]+=(S.photoData[item.id]?.photos||[]).length;});});return cnt;}
+
+// ── COMPASS ────────────────────────────────────────────────────────────────
+const WALL_FROM_STANDING={N:'South',S:'North',E:'West',W:'East'};
+const STAND_DIR={N:'South Wall',S:'North Wall',E:'West Wall',W:'East Wall'};
+
+// Keep startCompass for heading display in photos nav
+function startCompass(){
+  if(!window.DeviceOrientationEvent)return;
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')listenCompass();}).catch(()=>{});
+  } else {listenCompass();}
+}
+function listenCompass(){
+  window.addEventListener('deviceorientationabsolute',handleOrient,true);
+  window.addEventListener('deviceorientation',handleOrient,true);
+  compassActive=true;
+}
+function handleOrient(e){
+  let h=e.alpha||0;
+  if(e.webkitCompassHeading) h=e.webkitCompassHeading;
+  compassHeading=Math.round(h);
+  const needle=document.getElementById('compass-needle');
+  if(needle) needle.style.transform=`translateX(-50%) translateY(-100%) rotate(${h}deg)`;
+  updateCompassResult();
+}
+function updateCompassResult(){
+  const el=document.getElementById('compass-result-text');
+  if(!el)return;
+  const btn=document.querySelector('.dir-btn.active');
+  if(!btn)return;
+  const standing=btn.dataset.dir;
+  const wall=STAND_DIR[standing]||'';
+  el.innerHTML=`You are on the <strong>${standing} side</strong> → photographing the <strong>${wall}</strong>`;
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render(){
+  updateHdr();
+  updateNav();
+  const c=document.getElementById('content');
+  const map={setup:renderSetup,facts:renderFacts,mgmt:renderMgmt,condition:renderCondition,units:renderUnits,photos:renderPhotos,summary:renderSummary};
+  c.innerHTML=(map[S.screen]||renderSetup)();
+  bindEvents();
+  if(S.screen==='photos') startCompass();
+  // Init swipe after DOM update
+  setTimeout(initSwipeCards, 50);
+}
+
+function goHome(){
+  if(S.screen==='setup') return;
+  if(confirm('Return to home? Your current progress is saved and can be reopened within 48 hours.')){
+    saveInspectionToHistory();
+    S.screen='setup';
+    render();
+  }
+}
+
+function updateHdr(){
+  const titles={setup:'SF Field Inspection',facts:'Property Facts',mgmt:'Management',condition:'Physical Condition',units:'Units Inspected',photos:'Photo Checklist',summary:'Inspection Summary'};
+  const subs={setup:'Configure your inspection',facts:'On-site property data',mgmt:'Management interview',condition:'Ratings & observations',units:'Log each unit inspected',photos:'Capture required photos',summary:`${totalPhotos()} photos · ${doneItems()}/${allItems().length} items`};
+  // Show home button on all screens except setup
+  const homeBtn=document.getElementById('home-btn');
+  if(homeBtn) homeBtn.style.display=S.screen!=='setup'?'':'none';
+  document.getElementById('hdr-title').textContent=titles[S.screen]||'';
+  document.getElementById('hdr-sub').textContent=subs[S.screen]||'';
+  const bb=document.getElementById('hdr-btn');
+  bb.style.display=S.screen!=='setup'?'':'none';
+  bb.textContent=S.screen==='summary'?'← Photos':'← Back';
+  document.getElementById('prog-bar').style.display=S.screen==='photos'?'':'none';
+  if(S.screen==='photos') document.getElementById('prog-fill').style.width=prog()+'%';
+}
+
+function updateNav(){
+  const nav=document.getElementById('screen-nav');
+  const inner=document.getElementById('snav-inner');
+  if(S.screen==='setup'){nav.style.display='none';return;}
+  nav.style.display='';
+  inner.innerHTML=SCREENS.filter(s=>s!=='setup').map(s=>{
+    const isActive=S.screen===s;
+    const isDone=s==='photos'?doneItems()===allItems().length&&allItems().length>0:false;
+    return `<button class="snav-btn${isActive?' active':''}${isDone&&!isActive?' done':''}" onclick="goScreen('${s}')">${SCREEN_LABELS[s]}</button>`;
+  }).join('');
+}
+
+// ── SETUP SCREEN ───────────────────────────────────────────────────────────
+function getAssignments(){
+  try{ return JSON.parse(localStorage.getItem('sf_assignments')||'[]'); }catch(e){return [];}
+}
+function saveAssignments(arr){
+  try{ localStorage.setItem('sf_assignments', JSON.stringify(arr)); }catch(e){}
+}
+function deleteAssignment(id){
+  const all = getAssignments().filter(a=>a.id!==id);
+  saveAssignments(all);
+  render();
+}
+function markAssignmentDone(id){
+  const all = getAssignments();
+  const a = all.find(x=>x.id===id);
+  if(a) a.status = a.status==='done'?'pending':'done';
+  saveAssignments(all);
+  render();
+}
+function callContact(phone){
+  if(!phone){toast('No phone number','err');return;}
+  window.location.href='tel:'+phone.replace(/\D/g,'');
+}
+function textContact(phone, name, addr){
+  if(!phone){toast('No phone number','err');return;}
+  const bankLabel = (BANKS.find(b=>b.id===S.bank)||{}).name||'Spectrum Field Services';
+  const msg=encodeURIComponent(`Hi ${name||'there'}, this is your inspector from ${bankLabel}. I am on my way for today's inspection at ${addr||S.address||'your property'}. I will arrive shortly. Please ensure access is available. Thank you! - Briahna Savage`);
+  window.location.href='sms:'+phone.replace(/[^0-9]/g,'')+'?body='+msg;
+}
+function startInspectionFromAssignment(a){
+  // Pre-fill state from assignment
+  S.address=a.address||'';
+  S.city=a.city||'';
+  S.state=a.state||'';
+  S.propName=a.propName||'';
+  S.bank=a.bank||null;
+  S.sections=a.sections||[];
+  // On-site contact
+  S.onSiteName=a.contactName||'';
+  S.onSitePhone=a.contactPhone||'';
+  S.onSiteEmail=a.contactEmail||'';
+  // Management contact
+  S.mgmtCompany=a.mgmtCompany||'';
+  S.mgmtContact=a.mgmtContact||'';
+  S.mgmtPhone=a.mgmtPhone||'';
+  S.mgmtEmail=a.mgmtEmail||'';
+  // Access notes go into general comments
+  if(a.accessNotes) S.neighborhood=(S.neighborhood?S.neighborhood+' ':'')+a.accessNotes;
+  S.activeSection=S.sections[0]||null;
+  // Mark in progress
+  const all=getAssignments();
+  const idx=all.findIndex(x=>x.id===a.id);
+  if(idx>=0){all[idx].status='inprog';saveAssignments(all);}
+  goScreen('facts');
+}
+
+function renderSetup(){
+  const assignments = getAssignments();
+  const today = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const todayKey = new Date().toISOString().slice(0,10);
+  // Mark done if inspection completed today
+  const doneToday = JSON.parse(localStorage.getItem('sf_inspections')||'[]')
+    .filter(i=>i.date===todayKey).map(i=>i.address);
+
+  const assignCards = assignments.map(a=>{
+    const isDone = a.status==='done' || doneToday.includes(a.address);
+    const isInProg = a.status==='inprog';
+    const statusIcon = isDone?'✓':isInProg?'●':'';
+    const statusClass = isDone?'done':isInProg?'inprog':'';
+    const bankLabel = (BANKS.find(b=>b.id===a.bank)||{}).name||a.bank||'';
+    return `<div class="assign-card${isDone?' done':''}">
+      <div class="assign-top">
+        <div class="assign-status ${statusClass}" onclick="markAssignmentDone('${a.id}')">${statusIcon}</div>
+        <div class="assign-info">
+          <div class="assign-addr">${esc(a.address)}${a.city?', '+esc(a.city):''}</div>
+          <div class="assign-bank">${esc(bankLabel)}${a.propName?' · '+esc(a.propName):''}</div>
+          ${a.contactName?`<div class="assign-contact" style="margin-top:4px">👤 <strong>${esc(a.contactName)}</strong></div>`:''}
+          ${a.contactPhone?`<div style="font-size:11px;color:var(--muted2);margin-top:2px">📞 ${esc(a.contactPhone)}</div>`:''}
+          ${a.contactEmail?`<div style="font-size:11px;color:var(--muted2);margin-top:2px">✉️ ${esc(a.contactEmail)}</div>`:''}
+        </div>
+        <button class="act-btn edit" style="width:32px;height:32px;padding:0;flex:none" onclick="openAssignModal('${a.id}')">✏️</button>
+      </div>
+      <div class="assign-actions">
+        ${a.contactPhone?`<button class="act-btn call" onclick="callContact('${a.contactPhone}')">📞 Call</button>`:''}
+        ${a.contactPhone?`<button class="act-btn text" onclick="textContact('${a.contactPhone}','${esc(a.contactName||'')}','${esc(a.address||'')}')">💬 Text</button>`:''}
+        ${a.contactEmail?`<button class="act-btn" style="border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,.08)" onclick="emailGeneralContact('onway','${esc(a.contactEmail)}','${esc(a.contactName||'')}','${esc(a.address||'')}')">✉️ Email</button>`:''}
+        <button class="act-btn start" onclick="startInspectionFromAssignment(${JSON.stringify(a).replace(/"/g,'&quot;')})">▶ Start</button>
+        <button class="act-btn" style="border-color:var(--green);color:var(--green);background:rgba(0,229,160,.08);flex:none;width:40px" onclick="getDirections(encodeURIComponent((a.address||'')+(a.city?' '+a.city:'')))">🗺️</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const calBar = renderCalendarBar();
+  const calCards = renderCalendarEvents();
+  const allEmpty = assignments.length===0 && calendarEvents.length===0;
+
+  return `<div class="pad">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title">📋 Today's Jobs</div>
+        <div class="dash-date">${today}</div>
+      </div>
+    </div>
+    ${calBar}
+    ${calCards}
+    ${calCards&&assignments.length?'<div style="margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700">➕ Manual</div>':''}
+    ${allEmpty?`
+      <div class="empty-dash">
+        <div class="empty-icon">🏢</div>
+        <p>No inspections today.<br>Connect your calendar or add manually below.</p>
+      </div>`:''}
+    ${assignCards}
+    <button class="add-assign-btn" id="add-assign-btn">＋ Add Assignment Manually</button>
+    ${renderTodayInspections()}
+    <div style="height:20px"></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:14px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-weight:700;margin-bottom:12px">⚙️ Quick Start</div>
+      <div class="field-row"><div class="field-lbl">Address *</div><input class="field-inp" id="f-addr" placeholder="123 Main St" value="${esc(S.address)}"></div>
+      <div class="field-row"><div class="field-lbl">Bank *</div>
+      <div class="chip-grid">${BANKS.map(b=>`<button class="chip${S.bank===b.id?' sel':''}" data-bank="${b.id}">${b.name}</button>`).join('')}</div></div>
+      <div class="field-row"><div class="field-lbl">Sections *</div>
+      <div class="chip-grid">${SECTION_TYPES.filter(s=>S.bank&&cl()?.sections[s.id]).map(s=>`<button class="chip${S.sections.includes(s.id)?' sel2':''}" data-section="${s.id}">${s.label}</button>`).join('') || '<span style="color:var(--muted);font-size:12px">Select a bank first</span>'}</div></div>
+      <button class="btn-primary" id="start-btn" style="margin-top:12px" ${canStart()?'':'disabled'}>Start Inspection →</button>
+    </div>
+    <div class="pb"></div>
+  </div>`;
+}
+
+// ── FACTS SCREEN ───────────────────────────────────────────────────────────
+function renderFacts(){
+  const now=new Date();
+  if(!S.inspDate) S.inspDate=now.toISOString().slice(0,10);
+  if(!S.inspTime) S.inspTime=now.toTimeString().slice(0,5);
+  const yn=(key,val)=>`<div class="yn-row">
+    <button class="yn-btn${val==='yes'?' yes':''}" data-yn="${key}" data-v="yes">Yes</button>
+    <button class="yn-btn${val==='no'?' no':''}" data-yn="${key}" data-v="no">No</button>
+  </div>`;
+  return `<div class="pad">
+    <div class="section-card">
+      <h3>📅 Inspection</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl">Date</div><input class="field-inp" id="f-date" type="date" value="${esc(S.inspDate)}"></div>
+        <div class="field-row"><div class="field-lbl">Time</div><input class="field-inp" id="f-time" type="time" value="${esc(S.inspTime)}"></div>
+      </div>
+      <div class="field-row" style="margin-top:8px"><div class="field-lbl">Property Name</div><input class="field-inp" id="f-propname" placeholder="e.g. Maple Court Apartments" value="${esc(S.propName)}"></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-top:8px">
+        <div class="field-row"><div class="field-lbl">City</div><input class="field-inp" id="f-city" placeholder="Bronx" value="${esc(S.city)}"></div>
+        <div class="field-row"><div class="field-lbl">State</div><input class="field-inp" id="f-state" placeholder="NY" value="${esc(S.state)}"></div>
+        <div class="field-row"><div class="field-lbl">Zip</div><input class="field-inp" id="f-zip" placeholder="10451" value="${esc(S.zip||'')}"></div>
+      </div>
+    </div>
+    <div class="section-card">
+      <h3>🏗️ Building Info</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl"># Buildings</div><input class="field-inp" id="f-bldgs" type="number" placeholder="1" value="${esc(S.numBuildings)}"></div>
+        <div class="field-row"><div class="field-lbl">Total Units</div><input class="field-inp" id="f-units" type="number" placeholder="24" value="${esc(S.numUnits)}"></div>
+        <div class="field-row"><div class="field-lbl">Year Built</div><input class="field-inp" id="f-ybuilt" type="number" placeholder="1985" value="${esc(S.yearBuilt)}"></div>
+        <div class="field-row"><div class="field-lbl">Year Renovated</div><input class="field-inp" id="f-yreno" type="number" placeholder="2015" value="${esc(S.yearRenovated)}"></div>
+        <div class="field-row"><div class="field-lbl">Occupied Units</div><input class="field-inp" id="f-occ" type="number" placeholder="20" value="${esc(S.numOccupied)}"></div>
+        <div class="field-row"><div class="field-lbl">Vacant Units</div><input class="field-inp" id="f-vac" type="number" placeholder="4" value="${esc(S.numVacant)}"></div>
+        <div class="field-row"><div class="field-lbl">Down Units</div><input class="field-inp" id="f-down" type="number" placeholder="0" value="${esc(S.numDown)}"></div>
+        <div class="field-row"><div class="field-lbl">Sq Ft</div><input class="field-inp" id="f-sqft" type="number" placeholder="12000" value="${esc(S.sqFt)}"></div>
+        <div class="field-row"><div class="field-lbl">Occupancy %</div><input class="field-inp" id="f-occpct" type="number" placeholder="96" value="${esc(S.occupancyPct)}"></div>
+        <div class="field-row"><div class="field-lbl">Parking Spots</div><input class="field-inp" id="f-parking" type="number" placeholder="0" value="${esc(S.numParking)}"></div>
+      </div>
+    </div>
+    <div class="section-card">
+      <h3>🏢 Property Type</h3>
+      <div class="chip-grid">${PROP_TYPES.map(t=>`<button class="chip${S.propType===t?' sel':''}" data-proptype="${t}">${t}</button>`).join('')}</div>
+    </div>
+    <div class="section-card">
+      <h3>✅ Features</h3>
+      <div class="field-row"><div class="field-lbl">Rent Roll Provided?</div>
+        <div class="yn-row">
+          <button class="yn-btn${S.rentRoll==='yes'?' yes':''}" data-yn="rentRoll" data-v="yes">Yes</button>
+          <button class="yn-btn${S.rentRoll==='no'?' no':''}" data-yn="rentRoll" data-v="no">No — Request</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Roof Accessible</div>${yn('roofAccess',S.roofAccess)}</div>
+      <div class="divider"></div>
+      <div class="field-row">
+        <div class="field-lbl">Elevator</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${yn('elevator',S.elevator)}
+          ${S.elevator==='yes'?`<select class="field-sel" id="f-numelev" style="width:80px">
+            ${['','1','2','3','4','5','6','7','8','9','10'].map(n=>`<option value="${n}"${S.numElevators===n?' selected':''}>${n||'#'}</option>`).join('')}
+          </select>`:''}
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Sprinkler System</div>${yn('sprinkler',S.sprinkler)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Amenities</div><input class="field-inp" id="f-amen" placeholder="Laundry, gym, pool..." value="${esc(S.amenities)}"></div>
+    </div>
+    <div class="section-card">
+      <h3>🗺️ Neighborhood</h3>
+      <div class="field-row"><div class="field-lbl">Area Declining or Distressed?</div>${yn('areaDistressed',S.areaDistressed)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">New Construction Nearby?</div>${yn('newConstruction',S.newConstruction)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Neighborhood Description</div>
+      <textarea class="field-ta" id="f-nbhd" rows="3" placeholder="Describe the area, visibility, access, surrounding land use and trends...">${esc(S.neighborhood)}</textarea>
+      <div class="small-note">3–5 sentences describing so someone who's never been there can visualize it</div></div>
+    </div>
+    <button class="btn-primary" onclick="goScreen('mgmt')" style="margin-bottom:32px">Next: Management →</button>
+  </div>`;
+}
+
+// ── MGMT SCREEN ────────────────────────────────────────────────────────────
+function renderMgmt(){
+  const yn=(key,val)=>`<div class="yn-row"><button class="yn-btn${val==='yes'?' yes':''}" data-yn="${key}" data-v="yes">Yes</button><button class="yn-btn${val==='no'?' no':''}" data-yn="${key}" data-v="no">No</button></div>`;
+  const pby=(key,val)=>`<div class="yn-row">
+    <button class="yn-btn${val==='owner'?' yes':''}" data-yn="${key}" data-v="owner">Owner</button>
+    <button class="yn-btn${val==='tenant'?' yes':''}" data-yn="${key}" data-v="tenant">Tenant</button>
+    <button class="yn-btn${val==='na'?' no':''}" data-yn="${key}" data-v="na">N/A</button>
+  </div>`;
+  const limSection=(S.bank==='santander')?`
+    <div class="section-card">
+      <h3>⚠️ Limitations (Santander)</h3>
+      <div class="field-row"><div class="field-lbl">Management unavailable for interview?</div>${yn('limMgmtUnavail',S.limMgmtUnavail)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Management experience less than 6 months?</div>${yn('limMgmtExp',S.limMgmtExp)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Occupied units unavailable for assessment?</div>${yn('limUnitsUnavail',S.limUnitsUnavail)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Common areas unavailable?</div>${yn('limCommonUnavail',S.limCommonUnavail)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Snow covering exterior areas?</div>${yn('limSnow',S.limSnow)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Other limitation?</div>${yn('limOther',S.limOther)}</div>
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Limitation Comments</div><textarea class="field-ta" id="f-limcomment" rows="2" placeholder="Explain any Yes answers...">${esc(S.limComment)}</textarea></div>
+    </div>`:'';
+  return `<div class="pad">
+    <div class="section-card">
+      <h3>👤 Accompanied By</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl">Name</div><input class="field-inp" id="f-acc" placeholder="John Smith" value="${esc(S.accompanied)}"></div>
+        <div class="field-row"><div class="field-lbl">Phone</div><input class="field-inp" id="f-accph" type="tel" placeholder="555-1234" value="${esc(S.accompaniedPhone)}"></div>
+      </div>
+    </div>
+    <div class="section-card">
+      <h3>📍 On-Site Contact</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl">Name</div><input class="field-inp" id="f-osname" placeholder="Barry Allen" value="${esc(S.onSiteName)}"></div>
+        <div class="field-row"><div class="field-lbl">Phone</div><input class="field-inp" id="f-osphone" type="tel" placeholder="555-1234" value="${esc(S.onSitePhone)}"></div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Email</div><input class="field-inp" id="f-osemail" type="email" placeholder="contact@property.com" value="${esc(S.onSiteEmail)}"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn-secondary" style="flex:1;padding:10px;font-size:12px" id="text-onway-btn">📱 Text "On My Way"</button>
+        <button class="btn-secondary" style="flex:1;padding:10px;font-size:12px" id="email-contact-btn">📧 Email Contact</button>
+      </div>
+    </div>
+    <div class="section-card">
+      <h3>🏢 Management Company</h3>
+      <div class="field-row"><div class="field-lbl">Company Name</div><input class="field-inp" id="f-mgmt" placeholder="ABC Property Mgmt" value="${esc(S.mgmtCompany)}"></div>
+      <div class="field-row"><div class="field-lbl">Interviewee Name</div><input class="field-inp" id="f-mgmtc" placeholder="Diana Prince" value="${esc(S.mgmtContact)}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl">Title</div><input class="field-inp" id="f-mgmttitle" placeholder="Property Manager" value="${esc(S.mgmtTitle)}"></div>
+        <div class="field-row"><div class="field-lbl">Phone</div><input class="field-inp" id="f-mgmtph" type="tel" placeholder="555-5678" value="${esc(S.mgmtPhone)}"></div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Email</div><input class="field-inp" id="f-mgmtemail" type="email" placeholder="manager@company.com" value="${esc(S.mgmtEmail)}"></div>
+      <div class="field-row"><div class="field-lbl">Length of Time at Property</div>
+        <select class="field-sel" id="f-mgmtlen">
+          ${['','Less than 1 year','1 to 2 years','2 to 3 years','3 to 5 years','More than 5 years'].map(o=>`<option value="${o}"${S.mgmtLength===o?' selected':''}>${o||'Select...'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-row"><div class="field-lbl">Management Change Since Last Inspection?</div>${yn('mgmtChange',S.mgmtChange)}</div>
+      <div class="field-row"><div class="field-lbl">How Often Does Manager Visit?</div>
+        <select class="field-sel" id="f-mgmtvisit">
+          ${['','On-Site (Lives at property)','Daily','Weekly','Monthly','As Needed','Rarely'].map(o=>`<option value="${o}"${S.mgmtVisitFreq===o?' selected':''}>${o||'Select...'}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    ${!['ncb','mt','habib'].includes(S.bank||'')?`<div class="section-card">
+      <h3>⚡ Utilities — Who Pays?</h3>
+      ${[['Heat','heatPaidBy'],['Water','waterPaidBy'],['Electric','electricPaidBy'],['Gas','gasPaidBy'],['Trash','trashPaidBy'],['Cable','cablePaidBy']].map(([lbl,key])=>`
+        <div class="field-row"><div class="field-lbl">${lbl}</div>${pby(key,S[key])}</div><div class="divider"></div>`).join('')}
+    </div>`:''}
+    <div class="section-card">
+      <h3>🔥 Incidents (Past 12 Months)</h3>
+      <div class="field-row"><div class="field-lbl">Fire, water intrusion, or significant damage?</div>${yn('fireDamage',S.fireDamage)}</div>
+      ${S.fireDamage==='yes'?`<div class="field-row"><textarea class="field-ta" id="f-firedtl" rows="2" placeholder="Location, costs, insurance, resolution...">${esc(S.fireDamageDetails)}</textarea></div>`:''}
+      <div class="divider"></div>
+      <div class="field-row"><div class="field-lbl">Code violations received?</div>${yn('codeViolations',S.codeViolations)}</div>
+      ${S.codeViolations==='yes'?`<div class="field-row"><textarea class="field-ta" id="f-codedtl" rows="2" placeholder="Violation details, costs, resolution...">${esc(S.codeDetails)}</textarea></div>`:''}
+    </div>
+    ${limSection}
+    <button class="btn-primary" onclick="goScreen('condition')" style="margin-bottom:32px">Next: Condition →</button>
+  </div>`;
+}
+
+// ── CONDITION SCREEN ───────────────────────────────────────────────────────
+function renderCondition(){
+  const bank = S.bank||'';
+  const isWells = bank==='wells';
+  const isCMSA = ['ncb','mt','habib','santander'].includes(bank);
+
+  // ── WELLS FARGO — Fast Trak Form ──────────────────────────────────────────
+  if(isWells){
+    return renderConditionWells();
+  }
+  // ── NCB / M&T / HABIB / SANTANDER — CMSA Form ────────────────────────────
+  if(isCMSA){
+    return renderConditionCMSA();
+  }
+  // ── GENERIC fallback ──────────────────────────────────────────────────────
+  return renderConditionGeneric();
+}
+
+function condSelect(key, ratings){
+  const opts = ratings.map(r=>`<option value="${r}"${S[key]===r?' selected':''}>${r||'Select...'}</option>`).join('');
+  return `<select class="field-sel" data-field="${key}" style="font-size:12px;padding:6px 8px">${opts}</select>`;
+}
+
+function cmساRow(label, key){
+  const RATINGS = ['','Excellent','Good','Fair','Poor','N/A','Not Accessible','Not Inspected'];
+  return `<div class="stat-row">
+    <span class="stat-lbl" style="font-size:12px">${label}</span>
+    ${condSelect('cond_'+key, RATINGS)}
+  </div>`;
+}
+
+function renderConditionCMSA(){
+  const EXT_ITEMS = [
+    ['Ingress/Egress','ingress'],['Parking Lot','parking'],['Striping','striping'],
+    ['Drainage','drainage'],['Retaining Walls','retainingwalls'],['Sidewalks','sidewalks'],
+    ['Landscaping','landscaping'],['Signage','signage'],['Site Lighting','sitelighting'],
+    ['Roof Condition','roofcondition'],['Flashing/Eaves/Ventilators','flashing'],
+    ['Gutters/Downspouts','gutters'],['Foundations','foundations'],
+    ['Exterior Walls','exteriorwalls'],['Stairs/Railings','stairsrailings'],
+    ['Glazing/Windows','glazingwindows'],['Storefronts','storefronts'],
+    ['Exterior Doors','exteriordoors'],['Amenities','amenities_ext'],
+    ['Loading Docks','loadingdocks'],['Paint','paint'],['Siding/Trim','sidingtrim'],
+    ['Balconies','balconies'],['Security','security'],['Refuse/Disposal','refuse'],
+  ];
+  const INT_ITEMS = [
+    ['Lobbies','lobbies'],['Hallways','hallways'],['Stairways','stairways'],
+    ['Interior Walls','interiorwalls'],['Painting/Wallcover','paintingwallcover'],
+    ['Flooring/Carpets/Tiles','flooring'],['Ceilings','ceilings'],
+    ['Interior Doors','interiordoors'],['Windows','windows'],
+    ['Kitchens','kitchens'],['Appliances','appliances'],['Fixtures','fixtures'],
+    ['Cabinets','cabinets'],['Plumbing/Bathrooms','plumbing'],
+    ['Electrical','electrical'],['Lighting','lighting'],['HVAC System','hvacsystem'],
+    ['Basement','basement'],['Mechanical Rooms','mechanicalrooms'],
+    ['Boilers/Water Heaters','boilers'],['Laundry Rooms','laundryrooms'],
+    ['Elevators/Escalators','elevators'],['Sprinklers/Fire Protection','sprinklers'],
+    ['Amenities','amenities_int'],
+  ];
+
+  // Add M&T/Habib specific items
+  const isMTHab = ['mt','habib'].includes(S.bank||'');
+
+  return `<div class="pad">
+    <div class="section-card">
+      <h3>⭐ Overall Rating</h3>
+      <div class="chip-grid" style="margin-bottom:10px">
+        ${['Excellent','Good','Fair','Poor'].map(r=>`<button class="chip${S.overallRating===r?' sel':''}" data-single="overallRating" data-single-val="${r}">${r}</button>`).join('')}
+      </div>
+      <textarea class="field-ta" data-field="overallComment" rows="2" placeholder="Overall comment...">${esc(S.overallComment||'')}</textarea>
+    </div>
+
+    <div class="section-card">
+      <h3>🔧 Improvements</h3>
+      <div class="field-row"><div class="field-lbl">Repairs/Improvements made this year</div>
+        <textarea class="field-ta" data-field="improvementsThisYear" rows="2" placeholder="Describe repairs or improvements made this year...">${esc(S.improvementsThisYear||'')}</textarea>
+      </div>
+      <div class="field-row"><div class="field-lbl">Planned for next 1-2 years</div>
+        <textarea class="field-ta" data-field="improvementsPlanned" rows="2" placeholder="Describe planned improvements...">${esc(S.improvementsPlanned||'')}</textarea>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>🏗️ Exterior Condition</h3>
+      ${EXT_ITEMS.map(([lbl,key])=>cmساRow(lbl,key)).join('')}
+    </div>
+
+    <div class="section-card">
+      <h3>🏠 Interior Condition</h3>
+      ${INT_ITEMS.map(([lbl,key])=>cmساRow(lbl,key)).join('')}
+      <div class="field-row" style="margin-top:10px">
+        <div class="field-lbl">🔥 Boiler Room Comments</div>
+        <textarea class="field-ta" data-field="boilerNote" rows="2" placeholder="Boiler condition, age, access notes...">${esc(S.boilerNote||'')}</textarea>
+      </div>
+      <div class="field-row" style="margin-top:10px">
+        <div class="field-lbl">🏊 Exterior Amenities Notes</div>
+        <textarea class="field-ta" data-field="exteriorAmenitiesNote" rows="2" placeholder="Pool, gym, playground, laundry, parking condition...">${esc(S.exteriorAmenitiesNote||'')}</textarea>
+      </div>
+    </div>
+
+    ${isMTHab?`<div class="section-card">
+      <h3>⚠️ Special Questions (M&T / Habib)</h3>
+      <div class="field-row"><div class="field-lbl">Underground Storage Tank</div>
+        <select class="field-sel" data-field="ustCert">
+          ${['','Current','Expired','N/A','Not Provided'].map(o=>`<option value="${o}"${S.ustCert===o?' selected':''}>${o||'Select...'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-row"><div class="field-lbl">Marijuana-related business?</div>
+        <div class="yn-row"><button class="yn-btn${S.marijuana==='yes'?' yes':''}" data-yn="marijuana" data-v="yes">Yes</button><button class="yn-btn${S.marijuana==='no'?' no':''}" data-yn="marijuana" data-v="no">No</button></div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Medical marijuana sold?</div>
+        <div class="yn-row"><button class="yn-btn${S.medMarijuana==='yes'?' yes':''}" data-yn="medMarijuana" data-v="yes">Yes</button><button class="yn-btn${S.medMarijuana==='no'?' no':''}" data-yn="medMarijuana" data-v="no">No</button></div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Sexually oriented business?</div>
+        <div class="yn-row"><button class="yn-btn${S.sexBusiness==='yes'?' yes':''}" data-yn="sexBusiness" data-v="yes">Yes</button><button class="yn-btn${S.sexBusiness==='no'?' no':''}" data-yn="sexBusiness" data-v="no">No</button></div>
+      </div>
+    </div>`:''}
+
+    <div class="section-card">
+      <h3>🔨 Deferred Maintenance</h3>
+      <div class="field-row"><div class="field-lbl">Is there Deferred Maintenance?</div>
+        <div class="yn-row"><button class="yn-btn${S.hasDM==='yes'?' yes':''}" data-yn="hasDM" data-v="yes">Yes</button><button class="yn-btn${S.hasDM==='no'?' no':''}" data-yn="hasDM" data-v="no">No</button></div>
+      </div>
+      ${S.hasDM==='yes'?`
+      <div class="field-row"><div class="field-lbl">Structural or Cosmetic?</div>
+        <select class="field-sel" data-field="dmType"><option value="">Select...</option><option value="Structural"${S.dmType==='Structural'?' selected':''}>Structural</option><option value="Cosmetic"${S.dmType==='Cosmetic'?' selected':''}>Cosmetic</option><option value="Both"${S.dmType==='Both'?' selected':''}>Both</option></select>
+      </div>
+      <div class="field-row"><div class="field-lbl">Life or Safety Issue?</div>
+        <div class="yn-row"><button class="yn-btn${S.dmLifeSafety==='yes'?' yes':''}" data-yn="dmLifeSafety" data-v="yes">Yes</button><button class="yn-btn${S.dmLifeSafety==='no'?' no':''}" data-yn="dmLifeSafety" data-v="no">No</button></div>
+      </div>`:''}
+      <div class="field-row"><div class="field-lbl">DM Description</div>
+        <textarea class="field-ta" data-field="dmDescription" rows="3" placeholder="Describe all deferred maintenance observed...">${esc(S.dmDescription||'')}</textarea>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="goScreen('units')" style="margin-bottom:32px">Next: Units →</button>
+  </div>`;
+}
+
+function renderConditionWells(){
+  const NBH_STATES = ['Growing','Stable','Declining','Revitalization'];
+  const NBH_COND = ['Excellent','Good','Average','Fair','Poor'];
+  const SIGN_OPTS = ['Many','Few','None'];
+  const SURROUND = ['Apartment','Industrial','Commercial','Retail','Single-Family','Vacant Land'];
+  const COMPARE = ['Better','Similar','Worse'];
+  const GEN_RATINGS = ['','Excellent','Good','Average','Below Average','Poor'];
+  const EXT_RATINGS = ['','Excellent','Good','Average','Below Average','Poor','Not Accessible'];
+
+  const tog=(group,key,opts)=>opts.map(o=>`<button class="chip${(S[key]||[]).includes(o)?' sel3':''}" data-toggle-group="${group}" data-toggle-key="${key}" data-toggle-val="${o}">${o}</button>`).join('');
+  const single=(key,opts,single=true)=>opts.map(o=>`<button class="chip${S[key]===o?' sel':''}" data-single="${key}" data-single-val="${o}">${o}</button>`).join('');
+
+  return `<div class="pad">
+    <div class="section-card">
+      <h3>⭐ Overall Comments</h3>
+      <textarea class="field-ta" data-field="overallComment" rows="4" placeholder="Short paragraph: describe property type, location, condition, surrounding area, inaccessibility...">${esc(S.overallComment||'')}</textarea>
+    </div>
+
+    <div class="section-card">
+      <h3>📍 Site Information</h3>
+      <div class="field-row"><div class="field-lbl">Site Activity</div>
+        <select class="field-sel" data-field="siteActivity">${['','Operating','Vacant','Under Construction','Partially Vacant'].map(o=>`<option value="${o}"${S.siteActivity===o?' selected':''}>${o||'Select...'}</option>`).join('')}</select>
+      </div>
+      <div class="field-row"><div class="field-lbl">Location</div>
+        <select class="field-sel" data-field="siteLocation">${['','Not on a Corner','Corner Lot','Flag Lot'].map(o=>`<option value="${o}"${S.siteLocation===o?' selected':''}>${o||'Select...'}</option>`).join('')}</select>
+      </div>
+      <div class="field-row"><div class="field-lbl">Site Elevation</div>
+        <select class="field-sel" data-field="siteElevation">${['','On flat Land','Below Grade','Above Grade'].map(o=>`<option value="${o}"${S.siteElevation===o?' selected':''}>${o||'Select...'}</option>`).join('')}</select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl">Adjacent Left</div><input class="field-inp" data-field-inp="adjLeft" placeholder="e.g. Parking lot" value="${esc(S.adjLeft||'')}"></div>
+        <div class="field-row"><div class="field-lbl">Adjacent Right</div><input class="field-inp" data-field-inp="adjRight" placeholder="e.g. Office building" value="${esc(S.adjRight||'')}"></div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Marijuana sold on property?</div>
+        <div class="yn-row"><button class="yn-btn${S.marijuana==='yes'?' yes':''}" data-yn="marijuana" data-v="yes">Yes</button><button class="yn-btn${S.marijuana==='no'?' no':''}" data-yn="marijuana" data-v="no">No</button></div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>🏘️ Neighborhood Description</h3>
+      <div class="field-row"><div class="field-lbl">Neighborhood State</div>
+        <div class="chip-grid">${single('nbhState',NBH_STATES)}</div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Property Condition / Maintenance</div>
+        <div class="chip-grid">${single('nbhCondition',NBH_COND)}</div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Lease Signs</div>
+        <div class="chip-grid">${single('leaseSigns',SIGN_OPTS)}</div>
+      </div>
+      <div class="field-row"><div class="field-lbl">For Sale Signs</div>
+        <div class="chip-grid">${single('saleSigns',SIGN_OPTS)}</div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Surrounding Area (select all)</div>
+        <div class="chip-grid">${SURROUND.map(o=>`<button class="chip${(S.surroundingArea||[]).includes(o)?' sel3':''}" data-multisel="surroundingArea" data-val="${o}">${o}</button>`).join('')}</div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Compared to Neighborhood</div>
+        <div class="chip-grid">${single('compareNbh',COMPARE)}</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>🏗️ Property Characteristic</h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">General</div>
+      ${[['Overall Condition','condOverall'],['Accessibility','condAccessibility'],['Physical Appearance','condAppearance'],['Visibility','condVisibility']].map(([lbl,key])=>`
+        <div class="stat-row"><span class="stat-lbl" style="font-size:12px">${lbl}</span>
+          <select class="field-sel" data-field="${key}" style="font-size:12px;padding:6px 8px;width:140px">
+            ${GEN_RATINGS.map(r=>`<option value="${r}"${S[key]===r?' selected':''}>${r||'Select...'}</option>`).join('')}
+          </select>
+        </div>`).join('')}
+      <div style="font-size:11px;color:var(--muted);margin:10px 0 6px">Exterior</div>
+      ${[['Landscaping','condLandscaping'],['Paving','condPaving'],['Lighting','condLighting'],['Windows','condWindows'],['Walls','condWalls'],['Roof','condRoof'],['Exterior Paint','condExtPaint']].map(([lbl,key])=>`
+        <div class="stat-row"><span class="stat-lbl" style="font-size:12px">${lbl}</span>
+          <select class="field-sel" data-field="${key}" style="font-size:12px;padding:6px 8px;width:140px">
+            ${EXT_RATINGS.map(r=>`<option value="${r}"${S[key]===r?' selected':''}>${r||'Select...'}</option>`).join('')}
+          </select>
+        </div>`).join('')}
+    </div>
+
+    <div class="section-card">
+      <h3>🔨 Deferred Maintenance</h3>
+      <textarea class="field-ta" data-field="dmDescription" rows="3" placeholder="Describe deferred maintenance, safety issues, or items below average/poor...">${esc(S.dmDescription||'')}</textarea>
+    </div>
+
+    <button class="btn-primary" onclick="goScreen('units')" style="margin-bottom:32px">Next: Units →</button>
+  </div>`;
+}
+
+function renderConditionGeneric(){
+  const TRENDS=['','Stable','Improving','Declining'];
+  const condRow=(label,key,subItems)=>{
+    const rk=`cond${key}`, tk=`cond${key}Trend`, nk=`cond${key}Note`;
+    return `<div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">${label}</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">${subItems}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><div class="field-lbl">Rating</div>
+          <select class="field-sel" data-field="${rk}">
+            ${['','1 – Like New','2 – Good','3 – Minor Issues','4 – Deteriorating','5 – Severe','N/A','Not Accessible'].map(o=>`<option value="${o}"${S[rk]===o?' selected':''}>${o||'Select...'}</option>`).join('')}
+          </select>
+        </div>
+        <div><div class="field-lbl">Trend</div>
+          <select class="field-sel" data-field="${tk}">
+            ${TRENDS.map(o=>`<option value="${o}"${S[tk]===o?' selected':''}>${o||'Select...'}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <textarea class="field-ta" data-field="${nk}" rows="2" placeholder="Inspector comments...">${esc(S[nk]||'')}</textarea>
+    </div>`;
+  };
+  return `<div class="pad">
+    <div class="section-card">
+      <h3>⭐ Overall Rating</h3>
+      <div class="chip-grid" style="margin-bottom:10px">
+        ${['Excellent','Good','Fair','Poor'].map(r=>`<button class="chip${S.overallRating===r?' sel':''}" data-single="overallRating" data-single-val="${r}">${r}</button>`).join('')}
+      </div>
+      <textarea class="field-ta" data-field="overallComment" rows="2" placeholder="Overall comment...">${esc(S.overallComment||'')}</textarea>
+    </div>
+    <div class="section-card">
+      <h3>🔍 Physical Condition</h3>
+      ${condRow('Site','Site','Appearance, signage, landscaping, parking, drainage')}
+      ${condRow('Building/Mechanical','Mech','HVAC, electrical, boilers, plumbing, fire protection')}
+      ${condRow('Building Exteriors','Ext','Siding, paint, windows, stairs, railings, foundations')}
+      ${condRow('Roof','Roof','Roof condition, access, shingles, flashing')}
+      ${condRow('Occupied Units','OccUnit','HVAC, ceilings, floors, walls, windows, appliances')}
+      ${condRow('Vacant Units','VacUnit','HVAC, ceilings, floors, walls, windows, appliances')}
+      ${condRow('Common Areas','Common','Lobby, mailboxes, halls, stairways')}
+      ${condRow('Amenities','Amen','Pool, gym, laundry, clubhouse')}
+      ${condRow('Environmental','Env','Spills, leaks, mold, distressed vegetation')}
+    </div>
+    <div class="section-card">
+      <h3>🔨 Deferred Maintenance</h3>
+      <textarea class="field-ta" data-field="dmDescription" rows="3" placeholder="Describe all deferred maintenance...">${esc(S.dmDescription||'')}</textarea>
+    </div>
+    <button class="btn-primary" onclick="goScreen('units')" style="margin-bottom:32px">Next: Units →</button>
+  </div>`;
+}
+
+// ── UNITS SCREEN ───────────────────────────────────────────────────────────
+function renderUnits(){
+  const units=S.units.map((u,i)=>{
+    const badgeClass=u.status==='occupied'?'badge-occ':u.status==='vacant'?'badge-vac':u.status==='commercial'?'badge-occ':'badge-down';
+    const badgeText=u.status==='occupied'?'Occupied':u.status==='vacant'?'Vacant':u.status==='commercial'?'Commercial':'Down';
+    const photos=u.photos||{};
+    const totalUnitPhotos=Object.values(photos).reduce((s,arr)=>s+arr.length,0);
+    const photoSlots=getUnitPhotoSlots(u);
+    const doneSlots=photoSlots.filter(s=>photos[s.key]&&photos[s.key].length>0).length;
+    const missingSlots=photoSlots.filter(s=>!(photos[s.key]&&photos[s.key].length>0));
+    const allPhotoDone = doneSlots===photoSlots.length;
+    return `<div class="unit-card">
+      <div class="unit-hdr" data-unit="${i}">
+        <div>
+          <div class="unit-num">${esc(u.label||'Unit')}</div>
+          <div class="unit-cond">${u.type||''}${u.baths?' · '+u.baths:''}${u.condition?' · Cond: '+u.condition+'/5':''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:${allPhotoDone?'var(--green)':totalUnitPhotos>0?'var(--amber)':'var(--muted)'}">${doneSlots}/${photoSlots.length} 📷</span>
+          <span class="unit-badge ${badgeClass}">${badgeText}</span>
+          <span style="color:var(--muted);font-size:16px">›</span>
+        </div>
+      </div>
+      ${missingSlots.length>0&&totalUnitPhotos>0?`<div style="padding:0 14px 10px;font-size:11px;color:var(--amber)">⚠ Missing: ${missingSlots.map(s=>s.label).join(', ')}</div>`:''}
+    </div>`;
+  }).join('');
+  return `<div class="pad">
+    <div class="bank-note"><strong>📌 Units:</strong> Tap each unit to add photos by room. Photos are labeled automatically.</div>
+    <button class="add-unit-btn" id="add-unit-btn">＋ Add Unit</button>
+    ${units||'<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">No units added yet</div>'}
+    <div class="pb"></div>
+    <button class="btn-primary" onclick="goScreen('photos')" style="margin:16px 0 32px">Next: Photos →</button>
+  </div>`;
+}
+
+// Define photo slots per unit type
+function getUnitPhotoSlots(u){
+  const status = u.status||'occupied';
+  const isCommercial = status==='commercial'||u.type==='Commercial';
+  if(isCommercial){
+    return [
+      {key:'storefront',    label:'Store Front (Exterior)'},
+      {key:'interior',      label:'Interior'},
+      {key:'signage',       label:'Signage'},
+    ];
+  }
+  return [
+    {key:'gfci',        label:'GFCI Outlet',  hint:'Kitchens & bathrooms within 6ft of water'},
+    {key:'co_detector', label:'CO Detector',   hint:'Carbon monoxide detector — each unit'},
+    {key:'living_room', label:'Living Room',   hint:''},
+    {key:'kitchen',     label:'Kitchen',       hint:''},
+    {key:'bathroom',    label:'Bathroom',      hint:''},
+    {key:'bedroom',     label:'Bedroom',       hint:''},
+  ];
+}
+
+// ── UNIT MODAL ─────────────────────────────────────────────────────────────
+let unitCamPendingSlot = null;
+let unitCamPendingIdx  = null;
+
+function openUnitModal(idx){
+  editingUnit = idx!=null ? idx : -1;
+  const u = idx!=null ? S.units[idx] : {};
+  const modal = document.getElementById('unit-modal');
+  const body  = document.getElementById('unit-modal-body');
+  modal.classList.remove('hidden');
+
+  const labelTypes = ['Unit Number','Apartment Letter','Floor + Unit','Commercial Name','Custom Label'];
+  const statuses   = ['occupied','vacant','down','commercial'];
+  const types      = ['Studio','1 Bedroom','2 Bedroom','3 Bedroom','4+ Bedroom','Commercial'];
+  const baths      = ['1 Bath','1.5 Bath','2 Bath','2.5 Bath','3+ Bath'];
+  const conds      = [1,2,3,4,5];
+  const checks     = [
+    ['Stove present','stove'],['Refrigerator present','fridge'],['Dishwasher present','dishwasher'],
+    ['Washer/Dryer present','washerdryer'],['Microwave present','microwave'],
+    ['Water damage visible','waterdamage'],['Mold observed','mold'],['Pest evidence','pest'],
+    ['Damaged flooring','flooring'],['Damaged walls/ceiling','walls'],['Damaged windows','windows'],
+    ...(S.bank==='santander'?[['GFCI outlet present','gfci_check'],['CO detector present','co_check']]:
+       [['Unit accessible','accessible']]),
+  ];
+
+  // Init temp state
+  window._uTemp = {
+    labelType: u.labelType||'Unit Number',
+    label:     u.label||'',
+    status:    u.status||'occupied',
+    type:      u.type||'',
+    baths:     u.baths||'',
+    condition: u.condition||'',
+    checks:    u.checks||[],
+    notes:     u.notes||'',
+    photos:    u.photos||{},
+    // Commercial fields
+    bizName:    u.bizName||'',
+    sqFt:       u.sqFt||'',
+    leaseExp:   u.leaseExp||'',
+    annualRent: u.annualRent||'',
+    pctNRA:     u.pctNRA||'',
+  };
+
+  renderUnitModalBody(body, labelTypes, statuses, types, baths, conds, checks);
+  bindUnitModal(body, labelTypes, statuses, types, baths, conds, checks, idx);
+}
+
+function renderUnitModalBody(body, labelTypes, statuses, types, baths, conds, checks){
+  const u = window._uTemp;
+  const isCommercial = u.status==='commercial'||u.type==='Commercial';
+  const slots = getUnitPhotoSlots(u);
+
+  // Build photo slots HTML
+  const photoSlotRows = slots.map(slot=>{
+    const photos = (u.photos[slot.key]||[]);
+    const isDone = photos.length > 0;
+    const thumbs = photos.map((p,pi)=>`
+      <div class="thumb">
+        <img src="${p.url}">
+        <button class="thumb-x" data-uslot="${slot.key}" data-uphoto="${pi}">×</button>
+      </div>`).join('');
+    return `<div style="background:var(--surface2);border:1px solid ${isDone?'rgba(0,229,160,.3)':'var(--border2)'};border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${(slot.hint||photos.length>0)?'6px':'8px'}">
+        <div>
+          <span style="font-size:13px;font-weight:600;color:${isDone?'var(--green)':'var(--text)'}">${isDone?'✅ ':''}${esc(slot.label)}</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px;font-family:var(--mono)">${photos.length} photo${photos.length!==1?'s':''}</span>
+        </div>
+      </div>
+      ${slot.hint?`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4">${esc(slot.hint)}</div>`:''}
+      ${isDone?`<div class="thumbs" style="margin:0 0 8px">${thumbs}</div>`:''}
+      <div class="cam-row">
+        <button class="cam-btn pri" data-ucam="${slot.key}">📷 Camera</button>
+        <button class="cam-btn" data-uupl="${slot.key}">🖼 Library</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0;font-family:var(--display)">${editingUnit>=0?'Edit Unit':'Add Unit'}</h3>
+      <button class="modal-close" onclick="closeUnitModal()">×</button>
+    </div>
+
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>🏷️ Unit Label</h3>
+      <div class="chip-grid" style="margin-bottom:8px">${labelTypes.map(t=>`<button class="chip${u.labelType===t?' sel':''}" data-ultype="${t}">${t}</button>`).join('')}</div>
+      <input class="field-inp" id="um-label" placeholder="e.g. 1-102 or Apt A or Le-Mac Pharmacy" value="${esc(u.label)}">
+    </div>
+
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>📊 Status</h3>
+      <div class="chip-grid">${statuses.map(s=>`<button class="chip${u.status===s?' sel3':''}" data-ustatus="${s}">${s.charAt(0).toUpperCase()+s.slice(1)}</button>`).join('')}</div>
+    </div>
+
+    ${isCommercial?`<div class="section-card" style="margin-bottom:10px">
+      <h3>🏪 Commercial Info</h3>
+      <div class="field-row"><div class="field-lbl">Business Name</div><input class="field-inp" id="um-bizname" placeholder="e.g. Le-Mac Pharmacy" value="${esc(u.bizName)}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl">Sq Ft</div><input class="field-inp" id="um-sqft" type="number" placeholder="1200" value="${esc(u.sqFt)}"></div>
+        <div class="field-row"><div class="field-lbl">Lease Expiry</div><input class="field-inp" id="um-lease" type="date" value="${esc(u.leaseExp)}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl">Annual Rent $</div><input class="field-inp" id="um-rent" type="number" placeholder="24000" value="${esc(u.annualRent)}"></div>
+        <div class="field-row"><div class="field-lbl">% NRA</div><input class="field-inp" id="um-nra" type="number" placeholder="8.4" value="${esc(u.pctNRA)}"></div>
+      </div>
+    </div>`:''}
+
+    ${!isCommercial?`<div class="section-card" style="margin-bottom:10px">
+      <h3>🛏️ Unit Type</h3>
+      <div class="chip-grid">${types.map(t=>`<button class="chip${u.type===t?' sel':''}" data-utype="${t}">${t}</button>`).join('')}</div>
+    </div>
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>🚿 Bathrooms</h3>
+      <div class="chip-grid">${baths.map(b=>`<button class="chip${u.baths===b?' sel':''}" data-ubaths="${b}">${b}</button>`).join('')}</div>
+    </div>`:''}
+
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>⭐ Overall Condition</h3>
+      <div class="rating-row">${conds.map(n=>`<button class="rating-btn${u.condition==n?' sel-r':''}" data-ucond="${n}">${n}</button>`).join('')}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">1=Like New · 2=Good · 3=Minor Issues · 4=Deteriorating · 5=Severe</div>
+    </div>
+
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>📸 Unit Photos</h3>
+      <div style="font-size:11px;color:var(--muted2);margin-bottom:12px;line-height:1.5">Capture each room below. Photos are auto-labeled and organized for Drive upload.</div>
+      ${photoSlotRows}
+    </div>
+
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>☑️ Checklist</h3>
+      <div class="chip-grid">${checks.map(([lbl,key])=>`<button class="chip${(u.checks||[]).includes(key)?' sel3':''}" data-ucheck="${key}">${lbl}</button>`).join('')}</div>
+    </div>
+
+    <div class="section-card" style="margin-bottom:16px">
+      <h3>📝 Notes</h3>
+      <textarea class="field-ta" id="um-notes" rows="3" placeholder="Any additional notes...">${esc(u.notes)}</textarea>
+    </div>
+
+    <button class="btn-primary" id="save-unit-btn" style="margin-bottom:8px">${editingUnit>=0?'Update Unit':'Save Unit'}</button>
+    ${editingUnit>=0?`<button class="btn-secondary" id="del-unit-btn" style="color:var(--red);border-color:var(--red)">🗑️ Delete Unit</button>`:''}
+  `;
+}
+
+function bindUnitModal(body, labelTypes, statuses, types, baths, conds, checks, idx){
+  // Label type
+  body.querySelectorAll('[data-ultype]').forEach(b=>b.addEventListener('click',()=>{
+    window._uTemp.labelType=b.dataset.ultype;
+    body.querySelectorAll('[data-ultype]').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+  }));
+  // Status — re-renders photo slots when changed
+  body.querySelectorAll('[data-ustatus]').forEach(b=>b.addEventListener('click',()=>{
+    window._uTemp.status=b.dataset.ustatus;
+    body.querySelectorAll('[data-ustatus]').forEach(x=>x.classList.remove('sel3'));
+    b.classList.add('sel3');
+    // Re-render modal to update photo slots
+    renderUnitModalBody(body, labelTypes, statuses, types, baths, conds, checks);
+    bindUnitModal(body, labelTypes, statuses, types, baths, conds, checks, idx);
+  }));
+  // Type
+  body.querySelectorAll('[data-utype]').forEach(b=>b.addEventListener('click',()=>{
+    window._uTemp.type=b.dataset.utype;
+    body.querySelectorAll('[data-utype]').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+  }));
+  // Baths
+  body.querySelectorAll('[data-ubaths]').forEach(b=>b.addEventListener('click',()=>{
+    window._uTemp.baths=b.dataset.ubaths;
+    body.querySelectorAll('[data-ubaths]').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+  }));
+  // Condition
+  body.querySelectorAll('[data-ucond]').forEach(b=>b.addEventListener('click',()=>{
+    window._uTemp.condition=b.dataset.ucond;
+    body.querySelectorAll('[data-ucond]').forEach(x=>x.classList.remove('sel-r'));
+    b.classList.add('sel-r');
+  }));
+  // Checklist
+  body.querySelectorAll('[data-ucheck]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.ucheck;
+    if(!window._uTemp.checks) window._uTemp.checks=[];
+    if(window._uTemp.checks.includes(k)) window._uTemp.checks=window._uTemp.checks.filter(x=>x!==k);
+    else window._uTemp.checks.push(k);
+    b.classList.toggle('sel3');
+  }));
+
+  // Camera buttons per slot
+  body.querySelectorAll('[data-ucam]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    unitCamPendingSlot=b.dataset.ucam;
+    unitCamPendingIdx=editingUnit;
+    document.getElementById('cam-in').click();
+  }));
+  body.querySelectorAll('[data-uupl]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    unitCamPendingSlot=b.dataset.uupl;
+    unitCamPendingIdx=editingUnit;
+    document.getElementById('upl-in').click();
+  }));
+
+  // Delete photo from slot
+  body.querySelectorAll('[data-uslot]').forEach(btn=>btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const slot=btn.dataset.uslot, pi=parseInt(btn.dataset.uphoto);
+    if(window._uTemp.photos[slot]) window._uTemp.photos[slot].splice(pi,1);
+    renderUnitModalBody(body, labelTypes, statuses, types, baths, conds, checks);
+    bindUnitModal(body, labelTypes, statuses, types, baths, conds, checks, idx);
+  }));
+
+  // Save
+  const saveBtn=document.getElementById('save-unit-btn');
+  if(saveBtn) saveBtn.addEventListener('click',()=>{
+    const lbl=document.getElementById('um-label')?.value.trim()||'';
+    const notes=document.getElementById('um-notes')?.value||'';
+    const bizName=document.getElementById('um-bizname')?.value||'';
+    const sqFt=document.getElementById('um-sqft')?.value||'';
+    const leaseExp=document.getElementById('um-lease')?.value||'';
+    const annualRent=document.getElementById('um-rent')?.value||'';
+    const pctNRA=document.getElementById('um-nra')?.value||'';
+    const unit={...window._uTemp,label:lbl,notes,bizName,sqFt,leaseExp,annualRent,pctNRA};
+    if(editingUnit>=0) S.units[editingUnit]=unit;
+    else S.units.push(unit);
+    closeUnitModal();
+    render();
+    toast('✅ Unit saved','ok');
+  });
+
+  // Delete unit
+  const delBtn=document.getElementById('del-unit-btn');
+  if(delBtn) delBtn.addEventListener('click',()=>{
+    S.units.splice(editingUnit,1);
+    closeUnitModal();
+    render();
+    toast('Unit removed');
+  });
+}
+
+// Handle unit photo capture — intercept cam-in/upl-in when unitCamPendingSlot is set
+function handleUnitPhoto(files){
+  if(!files.length||unitCamPendingSlot===null) return false;
+  const slot=unitCamPendingSlot;
+  if(!window._uTemp.photos[slot]) window._uTemp.photos[slot]=[];
+  Array.from(files).forEach(f=>{
+    window._uTemp.photos[slot].push({
+      id:Date.now()+''+Math.random(),
+      url:URL.createObjectURL(f),
+      name:f.name,
+      slot:slot,
+    });
+  });
+  unitCamPendingSlot=null;
+  unitCamPendingIdx=null;
+  // Re-render modal body
+  const body=document.getElementById('unit-modal-body');
+  if(body&&!document.getElementById('unit-modal').classList.contains('hidden')){
+    const labelTypes=['Unit Number','Apartment Letter','Floor + Unit','Commercial Name','Custom Label'];
+    const statuses=['occupied','vacant','down','commercial'];
+    const types=['Studio','1 Bedroom','2 Bedroom','3 Bedroom','4+ Bedroom','Commercial'];
+    const baths=['1 Bath','1.5 Bath','2 Bath','2.5 Bath','3+ Bath'];
+    const conds=[1,2,3,4,5];
+    const checks=[
+      ['Stove present','stove'],['Refrigerator present','fridge'],['Dishwasher present','dishwasher'],
+      ['Washer/Dryer present','washerdryer'],['Microwave present','microwave'],
+      ['Water damage visible','waterdamage'],['Mold observed','mold'],['Pest evidence','pest'],
+      ...(S.bank==='santander'?[['GFCI outlet present','gfci_check'],['CO detector present','co_check']]:
+         [['Unit accessible','accessible']]),
+    ];
+    renderUnitModalBody(body, labelTypes, statuses, types, baths, conds, checks);
+    bindUnitModal(body, labelTypes, statuses, types, baths, conds, checks, unitCamPendingIdx);
+  }
+  return true;
+}
+
+function closeUnitModal(){
+  document.getElementById('unit-modal').classList.add('hidden');
+  editingUnit=null;
+  unitCamPendingSlot=null;
+}
+
+
+
+// ── PHOTOS SCREEN ──────────────────────────────────────────────────────────
+function renderPhotos(){
+  const c=cl();
+  const tabs=S.sections.map(sid=>{
+    const lbl=(SECTION_TYPES.find(s=>s.id===sid)||{}).label||sid;
+    const done=secDone(sid),tot=secTotal(sid),isDone=done===tot;
+    return `<button class="sec-tab${S.activeSection===sid?' active':''}${isDone&&S.activeSection!==sid?' done':''}" data-tab="${sid}">${isDone&&S.activeSection!==sid?'✓ ':''}${lbl}<span class="cnt">${done}/${tot}</span></button>`;
+  }).join('');
+
+  const items=currentItems().map(item=>{
+    const data=S.photoData[item.id]||{};
+    const photos=data.photos||[];
+    const isComp=photos.length>0, isExp=S.expandedItem===item.id;
+    const showCompass=item.compass===true;
+
+    const compassHtml=showCompass&&isExp?`
+      <div class="compass-wrap">
+        <div class="compass-title">🧭 Compass Guide</div>
+        <div class="compass-dial">
+          <div class="compass-ring">
+            <div class="compass-n">N</div>
+            <div class="compass-needle" id="compass-needle" style="transform:translateX(-50%) translateY(-100%) rotate(${compassHeading}deg)">
+              <div class="needle-n"></div><div class="needle-s"></div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:8px">I am standing on the:</div>
+        <div class="compass-dirs">
+          ${['N','S','E','W'].map(d=>`<button class="dir-btn${''}" data-dir="${d}">${d} side</button>`).join('')}
+        </div>
+        <div class="compass-result" id="compass-result-text">Tap which side you're standing on →</div>
+      </div>`:'';
+
+    const thumbs=photos.map(p=>`<div class="thumb"><img src="${p.url}"><button class="thumb-x" data-item="${item.id}" data-photo="${p.id}">×</button></div>`).join('');
+    const body=isExp?`<div class="photo-body">
+      ${compassHtml}
+      ${photos.length>0?`<div class="thumbs">${thumbs}</div>`:''}
+      <div class="cam-row">
+        <button class="cam-btn pri" data-cam="${item.id}">📷 Camera</button>
+        <button class="cam-btn" data-upl="${item.id}">🖼 Library</button>
+      </div>
+      <div class="note-lbl">Caption / Notes</div>
+      <textarea class="field-ta" rows="2" placeholder="Add caption..." data-notes="${item.id}" style="margin-top:4px">${esc(data.note||'')}</textarea>
+    </div>`:'';
+
+    return `<div class="photo-item${isComp?' done':''}${item.req?' req':''}">
+      <div class="photo-hdr" data-expand="${item.id}">
+        <div class="photo-chk${isComp?' done':''}">${isComp?'✓':''}</div>
+        <div class="photo-info">
+          <div class="photo-lbl">${esc(item.label)}${item.req?'<span class="req-tag">Required</span>':''}${item.compass?'<span style="font-size:10px;color:var(--accent);margin-left:6px">🧭</span>':''}</div>
+          ${item.hint?`<div class="photo-hint">${esc(item.hint)}</div>`:''}
+        </div>
+        <div class="photo-cnt">${photos.length>0?photos.length+' 📷':isExp?'▲':'▼'}</div>
+      </div>${body}
+    </div>`;
+  }).join('');
+
+  return `<div class="pad">
+    <div class="sec-tabs">${tabs}
+      <button class="sec-tab" style="background:rgba(0,212,255,.08);border-color:var(--accent);color:var(--accent)" id="go-summary">Summary →</button>
+    </div>
+    ${c?.note?`<div class="bank-note"><strong>📌 ${esc(bankName())}:</strong> ${esc(c.note)}</div>`:''}
+    ${items}
+    <div class="pb"></div>
+  </div>`;
+}
+
+// ── SUMMARY SCREEN ─────────────────────────────────────────────────────────
+function renderSummary(){
+  const missing=missingReq(), tot=totalPhotos(), minReq=cl()?.photoMin||0;
+  const counts=pbyCount();
+  const dateStr=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const addr=S.address||'Property';
+
+  const secRows=S.sections.map(sid=>{
+    const lbl=(SECTION_TYPES.find(s=>s.id===sid)||{}).label||sid;
+    const done=secDone(sid),tot=secTotal(sid);
+    return `<div class="stat-row"><span class="stat-lbl">${lbl}</span><span class="stat-val${done===tot?' ok':' warn'}">${done}/${tot}</span></div>`;
+  }).join('');
+
+  const missingHtml=missing.length?`<div class="stat-card"><h3>⚠️ Missing Required</h3>${missing.map(m=>`<div class="miss-item">⚠ ${esc(m)}</div>`).join('')}</div>`:'';
+
+  const cuBar=`<div class="cu-bar">
+    <div class="cu-dot ${S.cuTaskUrl?'on':CU_LIST_ID?'on':'off'}"></div>
+    <span style="flex:1;color:${S.cuTaskUrl?'#7B68EE':CU_LIST_ID?'var(--muted2)':'var(--muted)'}">
+      ${S.cuTaskUrl?'Task created: '+esc(CU_LIST_NAME||'ClickUp'):CU_LIST_ID?'List: '+esc(CU_LIST_NAME||CU_LIST_ID):'No ClickUp list selected'}
+    </span>
+    ${S.cuTaskUrl?`<a href="${S.cuTaskUrl}" target="_blank" style="color:#7B68EE;font-size:11px;text-decoration:none">View →</a>`:`<button class="hdr-btn" onclick="openClickUpListPicker()" style="color:#7B68EE;border-color:#7B68EE">Select List</button>`}
+  </div>`;
+  const driveBar=`<div class="drive-bar">
+    <div class="drive-dot ${isUploading?'spin':gToken?'on':'off'}"></div>
+    <span style="flex:1;color:${gToken?'var(--green)':'var(--muted2)'}">${isUploading?'Uploading to Google Drive…':gToken?'Google Drive connected':'Not connected to Drive'}</span>
+    ${!gToken&&!isUploading?`<button class="hdr-btn" onclick="signIn()" style="color:var(--accent);border-color:var(--accent)">Connect</button>`:''}
+  </div>`;
+
+  const upHtml=isUploading&&uploadSteps.length?`<div class="up-steps"><h3>Upload Progress</h3>
+    ${uploadSteps.map(s=>`<div class="up-step ${s.status}"><span>${s.status==='done'?'✅':s.status==='active'?'⏳':'⬜'}</span><span>${esc(s.label)}</span></div>`).join('')}
+  </div>`:'';
+
+  const folderTree=`<div class="folder-tree"><h3>📁 Drive Folder Structure</h3>
+    <div class="ftree-root">📁 ${esc(addr)} – ${dateStr}</div>
+    <div class="ftree-child"><span>📄 inspection-report.txt</span><span class="ftree-badge">report</span></div>
+    ${Object.entries(counts).map(([name,cnt])=>`<div class="ftree-child"><span>📁 ${name}</span><span class="ftree-badge">${cnt} photos</span></div>`).join('')}
+  </div>`;
+
+  return `<div class="pad">
+    <div class="sum-hero">
+      <div class="icon">${missing.length===0?'✅':'⚠️'}</div>
+      <h2>${missing.length===0?'Ready to Upload':'Review Required'}</h2>
+      <p>${esc(S.propName||S.address)}</p>
+    </div>
+    ${cuBar}
+    ${driveBar}
+    ${upHtml}
+    ${folderTree}
+    <div class="stat-card"><h3>Photos</h3>
+      <div class="stat-row"><span class="stat-lbl">Total Captured</span><span class="stat-val${tot>=minReq?' ok':' warn'}">${tot}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Minimum Required</span><span class="stat-val">${minReq}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Items Completed</span><span class="stat-val ok">${doneItems()}/${allItems().length}</span></div>
+    </div>
+    <div class="stat-card"><h3>Sections</h3>${secRows}</div>
+    <div class="stat-card"><h3>Property</h3>
+      <div class="stat-row"><span class="stat-lbl">Address</span><span class="stat-val" style="font-size:11px">${esc(S.address)}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Bank</span><span class="stat-val" style="font-size:11px">${esc(bankName())}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Units Logged</span><span class="stat-val ok">${S.units.length}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Date</span><span class="stat-val" style="font-size:11px">${new Date().toLocaleDateString()}</span></div>
+    </div>
+    ${missingHtml}
+    <button class="btn-secondary btn-green" id="drive-btn" ${isUploading?'disabled':''}>
+      ${isUploading?'⏳ Uploading…':'☁️ Upload to Google Drive'}
+    </button>
+    <button class="btn-secondary" style="background:linear-gradient(135deg,#7B68EE,#6A5ACD);border:none;color:white;font-weight:700" id="clickup-btn">
+      ${S.cuTaskUrl?'✅ View in ClickUp':'📋 Create ClickUp Task'}
+    </button>
+    <button class="btn-secondary btn-blue" id="save-btn">💾 Save Report to Phone</button>
+    <button class="btn-secondary" onclick="goScreen('photos')">← Back to Photos</button>
+    <button class="btn-secondary" id="new-btn">🔄 New Inspection</button>
+    <div class="pb"></div>
+  </div>`;
+}
+
+// ── EVENTS ─────────────────────────────────────────────────────────────────
+function bindEvents(){
+  // Setup
+  const fa=document.getElementById('f-addr');if(fa)fa.addEventListener('input',e=>{S.address=e.target.value;const sb=document.getElementById('start-btn');if(sb)sb.disabled=!canStart();});
+  const fc=document.getElementById('f-city');if(fc)fc.addEventListener('input',e=>S.city=e.target.value);
+  const fst=document.getElementById('f-state');if(fst)fst.addEventListener('input',e=>S.state=e.target.value);
+  const fpn=document.getElementById('f-propname');if(fpn)fpn.addEventListener('input',e=>S.propName=e.target.value);
+  document.querySelectorAll('[data-bank]').forEach(b=>b.addEventListener('click',()=>{S.bank=b.dataset.bank;S.sections=[];render();}));
+  document.querySelectorAll('[data-section]').forEach(b=>b.addEventListener('click',()=>{
+    const s=b.dataset.section; S.sections=S.sections.includes(s)?S.sections.filter(x=>x!==s):[...S.sections,s];
+    if(!S.activeSection&&S.sections.length) S.activeSection=S.sections[0];
+    render();
+  }));
+  const aab=document.getElementById('add-assign-btn');if(aab)aab.addEventListener('click',()=>openAssignModal(null));
+  const sb=document.getElementById('start-btn');if(sb)sb.addEventListener('click',()=>{if(!canStart())return;S.activeSection=S.sections[0];goScreen('facts');});
+
+  // Facts
+  [['f-date','inspDate'],['f-city','city'],['f-state','state'],['f-bldgs','numBuildings'],['f-units','numUnits'],['f-ybuilt','yearBuilt'],['f-yreno','yearRenovated'],['f-occ','numOccupied'],['f-vac','numVacant'],['f-down','numDown'],['f-sqft','sqFt'],['f-occpct','occupancyPct'],['f-parking','numParking'],['f-amen','amenities'],['f-time','inspTime']].forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.addEventListener('input',e=>S[key]=e.target.value);});
+  const fnbhd=document.getElementById('f-nbhd');if(fnbhd)fnbhd.addEventListener('input',e=>S.neighborhood=e.target.value);
+  document.querySelectorAll('[data-proptype]').forEach(b=>b.addEventListener('click',()=>{S.propType=b.dataset.proptype;document.querySelectorAll('[data-proptype]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');}));
+
+  // Mgmt
+  [['f-acc','accompanied'],['f-accph','accompaniedPhone'],['f-mgmt','mgmtCompany'],['f-mgmtc','mgmtContact'],['f-mgmttitle','mgmtTitle'],['f-mgmtph','mgmtPhone'],['f-mgmtemail','mgmtEmail']].forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.addEventListener('input',e=>S[key]=e.target.value);});
+  const fml=document.getElementById('f-mgmtlen');if(fml)fml.addEventListener('change',e=>S.mgmtLength=e.target.value);
+  const fmv=document.getElementById('f-mgmtvisit');if(fmv)fmv.addEventListener('change',e=>S.mgmtVisitFreq=e.target.value);
+  const felev=document.getElementById('f-numelev');if(felev)felev.addEventListener('change',e=>S.numElevators=e.target.value);
+  const fosn=document.getElementById('f-osname');if(fosn)fosn.addEventListener('input',e=>S.onSiteName=e.target.value);
+  const fosp=document.getElementById('f-osphone');if(fosp)fosp.addEventListener('input',e=>S.onSitePhone=e.target.value);
+  const fose=document.getElementById('f-osemail');if(fose)fose.addEventListener('input',e=>S.onSiteEmail=e.target.value);
+  const ffd=document.getElementById('f-firedtl');if(ffd)ffd.addEventListener('input',e=>S.fireDamageDetails=e.target.value);
+  const fcd=document.getElementById('f-codedtl');if(fcd)fcd.addEventListener('input',e=>S.codeDetails=e.target.value);
+  const flc=document.getElementById('f-limcomment');if(flc)flc.addEventListener('input',e=>S.limComment=e.target.value);
+
+  // Y/N + utility buttons
+  document.querySelectorAll('[data-yn]').forEach(b=>b.addEventListener('click',()=>{
+    const key=b.dataset.yn, val=b.dataset.v;
+    S[key]=val;
+    document.querySelectorAll(`[data-yn="${key}"]`).forEach(x=>{x.classList.remove('yes','no');});
+    if(val==='yes'||val==='owner'||val==='tenant') b.classList.add('yes');
+    else b.classList.add('no');
+    if(['fireDamage','codeViolations','hasDM','elevator'].includes(key)) render();
+    if(key==='rentRoll'&&val==='no'){
+      setTimeout(()=>{
+        if(confirm('No rent roll provided. Would you like to email the contact to request it?')){
+          emailRentRollRequest();
+        }
+      },300);
+    }
+  }));
+
+  // Condition selects & textareas
+  document.querySelectorAll('[data-field]').forEach(el=>{
+    el.addEventListener(el.tagName==='TEXTAREA'?'input':'change',e=>S[el.dataset.field]=e.target.value);
+  });
+
+  // New condition field inputs
+  document.querySelectorAll('[data-field-inp]').forEach(el=>{
+    el.addEventListener('input',e=>S[el.dataset.fieldInp]=e.target.value);
+  });
+  // Single select chips (Wells Fargo neighborhood)
+  document.querySelectorAll('[data-single]').forEach(b=>b.addEventListener('click',()=>{
+    const key=b.dataset.single, val=b.dataset.singleVal;
+    S[key]=S[key]===val?'':val;
+    document.querySelectorAll(`[data-single="${key}"]`).forEach(x=>x.classList.remove('sel'));
+    if(S[key]) b.classList.add('sel');
+  }));
+  // Multi-select chips (surrounding area)
+  document.querySelectorAll('[data-multisel]').forEach(b=>b.addEventListener('click',()=>{
+    const key=b.dataset.multisel, val=b.dataset.val;
+    if(!Array.isArray(S[key])) S[key]=[];
+    if(S[key].includes(val)) S[key]=S[key].filter(x=>x!==val);
+    else S[key].push(val);
+    b.classList.toggle('sel3',S[key].includes(val));
+  }));
+  // DM yes/no re-render
+  const origYnHandler = document.querySelectorAll('[data-yn]');
+  // Rating buttons
+  document.querySelectorAll('[data-rating]').forEach(b=>b.addEventListener('click',()=>{
+    S.overallRating=b.dataset.rating;
+    document.querySelectorAll('[data-rating]').forEach(x=>x.classList.remove('sel-r'));
+    b.classList.add('sel-r');
+  }));
+
+  // Units
+  const au=document.getElementById('add-unit-btn');if(au)au.addEventListener('click',()=>openUnitModal(null));
+  document.querySelectorAll('[data-unit]').forEach(el=>el.addEventListener('click',()=>openUnitModal(parseInt(el.dataset.unit))));
+
+  // Photos
+  document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{S.activeSection=b.dataset.tab;S.expandedItem=null;render();}));
+  const gs=document.getElementById('go-summary');if(gs)gs.addEventListener('click',()=>goScreen('summary'));
+  document.querySelectorAll('[data-expand]').forEach(el=>el.addEventListener('click',()=>{const id=el.dataset.expand;S.expandedItem=S.expandedItem===id?null:id;render();if(S.expandedItem)startCompass();}));
+  document.querySelectorAll('[data-cam]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();pendingItemId=b.dataset.cam;document.getElementById('cam-in').click();}));
+  document.querySelectorAll('[data-upl]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();pendingItemId=b.dataset.upl;document.getElementById('upl-in').click();}));
+  document.querySelectorAll('[data-notes]').forEach(ta=>{ta.addEventListener('input',e=>{const id=ta.dataset.notes;if(!S.photoData[id])S.photoData[id]={photos:[]};S.photoData[id].note=e.target.value;});ta.addEventListener('click',e=>e.stopPropagation());});
+  document.querySelectorAll('.thumb-x').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.photoData[b.dataset.item].photos=S.photoData[b.dataset.item].photos.filter(p=>p.id!==b.dataset.photo);render();}));
+
+  // Compass dir buttons
+  document.querySelectorAll('.dir-btn').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.dir-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    updateCompassResult();
+    // Auto-fill caption
+    const standing=b.dataset.dir;
+    const wall=STAND_DIR[standing]||'';
+    if(S.expandedItem){
+      if(!S.photoData[S.expandedItem])S.photoData[S.expandedItem]={photos:[],note:''};
+      if(!S.photoData[S.expandedItem].note) S.photoData[S.expandedItem].note=wall;
+      const ta=document.querySelector(`[data-notes="${S.expandedItem}"]`);
+      if(ta&&!ta.value) ta.value=wall;
+    }
+  }));
+
+  // Summary
+  const db=document.getElementById('drive-btn');if(db)db.addEventListener('click',uploadToDrive);
+  const cub=document.getElementById('clickup-btn');if(cub)cub.addEventListener('click',createClickUpTask);
+  const tob=document.getElementById('text-onway-btn');if(tob)tob.addEventListener('click',textOnMyWay);
+  const emb=document.getElementById('email-contact-btn');if(emb)emb.addEventListener('click',showEmailMenu);
+  const svb=document.getElementById('save-btn');if(svb)svb.addEventListener('click',saveToPhone);
+  const nb=document.getElementById('new-btn');if(nb)nb.addEventListener('click',()=>{if(confirm('Start a new inspection? All photos and data will be cleared.')){
+  // Full state reset - clear everything
+  const fresh = getInitialState();
+  Object.assign(S, fresh);
+  // Clear master folder cache so it re-finds the folder
+  localStorage.removeItem('sf_master_folder_id');
+  render();
+  toast('✅ Ready for new inspection','ok');
+}});
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
+function goScreen(s){
+  if(s==='summary') saveInspectionToHistory();
+  // Guard: must have bank selected to go beyond setup
+  if(s!=='setup'&&!S.bank){toast('Please select a bank first','err');return;}
+  S.screen=s;render();document.getElementById('content').scrollTop=0;
+}
+function goBack(){
+  const idx=SCREENS.indexOf(S.screen);
+  if(idx>0)goScreen(SCREENS[idx-1]);
+}
+
+// ── PHOTO HANDLING ─────────────────────────────────────────────────────────
+function handlePhotos(files){
+  if(!files.length||!pendingItemId)return;
+  const id=pendingItemId;
+  if(!S.photoData[id])S.photoData[id]={photos:[],note:''};
+  // Get item label for filename
+  let itemLabel = id;
+  if(S.bank && CL[S.bank]){
+    for(const items of Object.values(CL[S.bank].sections||{})){
+      const item=(items||[]).find(i=>i.id===id);
+      if(item){itemLabel=item.label;break;}
+    }
+  }
+  Array.from(files).forEach(f=>{
+    const url=URL.createObjectURL(f);
+    S.photoData[id].photos.push({id:Date.now()+''+Math.random(),url,name:f.name});
+    autoSavePhotoToPhone(f, itemLabel);
+  });
+  S.expandedItem=id; render();
+}
+
+function autoSavePhotoToPhone(file, itemLabel){
+  try{
+    const addr=(S.address||'property').replace(/[^a-z0-9]/gi,'-').toLowerCase().slice(0,20);
+    const label=(itemLabel||'photo').replace(/[^a-z0-9]/gi,'-').toLowerCase();
+    const ts=Date.now();
+    const ext=file.type.includes('png')?'png':'jpg';
+    const fname=`SFI-${addr}-${label}-${ts}.${ext}`;
+
+    // Use Web Share API with files if available (iOS 15+, Android Chrome)
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      // Re-create file with a proper name
+      const namedFile = new File([file], fname, {type: file.type});
+      navigator.share({files:[namedFile], title: fname})
+        .catch(()=>{}); // User cancelled share = not an error
+      return;
+    }
+
+    // Fallback: trigger download (saves to Downloads / Files on Android, prompts save on desktop)
+    const url=URL.createObjectURL(file);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=fname;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{document.body.removeChild(a); URL.revokeObjectURL(url);},1500);
+  }catch(e){ console.warn('auto-save error:',e); }
+}
+document.getElementById('cam-in').addEventListener('change',function(){
+  if(!handleUnitPhoto(this.files)) handlePhotos(this.files);
+  this.value='';
+});
+document.getElementById('upl-in').addEventListener('change',function(){
+  if(!handleUnitPhoto(this.files)) handlePhotos(this.files);
+  this.value='';
+});
+
+// ── DRIVE UPLOAD ───────────────────────────────────────────────────────────
+async function driveFolder(name,parentId){
+  const b={name,mimeType:'application/vnd.google-apps.folder'};
+  if(parentId)b.parents=[parentId];
+  const r=await fetch('https://www.googleapis.com/drive/v3/files',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+gToken,'Content-Type':'application/json'},
+    body:JSON.stringify(b)
+  });
+  if(r.status===401){
+    // Token expired - re-auth and retry
+    gToken=null;
+    throw new Error('Google session expired. Please tap Upload again to re-authenticate.');
+  }
+  const d=await r.json();
+  if(!d.id) throw new Error('Folder error: '+(d.error?.message||name));
+  return d.id;
+}
+async function driveFile(name,blob,parentId){
+  const m=JSON.stringify({name,parents:[parentId]});
+  const f=new FormData();
+  f.append('metadata',new Blob([m],{type:'application/json'}));
+  f.append('file',blob);
+  return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{'Authorization':'Bearer '+gToken},body:f});
+}
+
+async function uploadToDrive(){
+  if(!gToken){signIn();return;}
+  if(isUploading)return;
+  isUploading=true;
+  uploadSteps=[
+    {label:'Creating property folder',status:'active'},
+    {label:'Creating subfolders',status:'pending'},
+    {label:'Uploading inspection report',status:'pending'},
+    {label:'Uploading photos',status:'pending'},
+    {label:'Uploading unit reports',status:'pending'},
+  ];
+  render();
+  try{
+    const dateStr=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const rootName=`${S.address||'Inspection'} – ${dateStr}`;
+    setStep(0,'active');
+
+    // Find the master '1inspections' folder first
+    let masterFolderId = localStorage.getItem('sf_master_folder_id')||null;
+    if(!masterFolderId){
+      const searchRes = await fetch(
+        "https://www.googleapis.com/drive/v3/files?q=name%3D'1Inspection+Photos'+and+mimeType%3D'application%2Fvnd.google-apps.folder'+and+trashed%3Dfalse&fields=files(id,name)",
+        {headers:{'Authorization':'Bearer '+gToken}}
+      );
+      const searchData = await searchRes.json();
+      const found = searchData.files&&searchData.files[0];
+      if(found){
+        masterFolderId = found.id;
+        localStorage.setItem('sf_master_folder_id', masterFolderId);
+      } else {
+        // If not found, create it so it exists going forward
+        masterFolderId = await driveFolder('1Inspection Photos', null);
+        localStorage.setItem('sf_master_folder_id', masterFolderId);
+        toast('Created "1Inspection Photos" folder in your Drive');
+      }
+    }
+
+    // Create property folder inside 1inspections
+    const rootId=await driveFolder(rootName, masterFolderId);
+    setStep(0,'done');
+    setStep(1,'active');
+    const subs={};
+    for(const n of['1. Exterior','2. Interior','3. Deferred Maintenance','4. Units Inspected'])
+      subs[n]=await driveFolder(n,rootId);
+    setStep(1,'done');
+    setStep(2,'active');
+    await driveFile(`inspection-report-${(S.address||'property').replace(/\s+/g,'-').toLowerCase()}.txt`,new Blob([buildReport()],{type:'text/plain'}),rootId);
+    setStep(2,'done');
+    setStep(3,'active');
+    let pc=0;const tp=totalPhotos();
+    for(const sid of S.sections){
+      const fn=FOLDER_MAP[sid]||'1. Exterior';
+      for(const item of cl()?.sections[sid]||[]){
+        for(let pi=0;pi<(S.photoData[item.id]?.photos||[]).length;pi++){
+          pc++;uploadSteps[3].label=`Uploading photos (${pc}/${tp})`;render();
+          try{const resp=await fetch(S.photoData[item.id].photos[pi].url);const blob=await resp.blob();const ext=blob.type.includes('png')?'png':'jpg';await driveFile(`${item.label.replace(/[^a-z0-9]/gi,'-').toLowerCase()}-${pi+1}.${ext}`,blob,subs[fn]);}catch(e){console.warn(e);}
+        }
+      }
+    }
+    setStep(3,'done');
+    setStep(4,'active');
+    if(S.units.length>0){
+      // Upload unit report text
+      const unitReport=buildUnitReport();
+      await driveFile('units-inspected.txt',new Blob([unitReport],{type:'text/plain'}),subs['4. Units Inspected']);
+
+      // Upload photos per unit in their own subfolders
+      for(const u of S.units){
+        if(!u.photos||Object.keys(u.photos).length===0) continue;
+        const hasPhotos=Object.values(u.photos).some(arr=>arr&&arr.length>0);
+        if(!hasPhotos) continue;
+
+        // Create subfolder for this unit
+        const unitLabel=(u.label||'unit').replace(/[^a-z0-9]/gi,'-').toLowerCase();
+        const unitFolderId = await driveFolder(`Unit-${unitLabel}`, subs['4. Units Inspected']);
+
+        // Upload each photo slot
+        for(const [slot, photos] of Object.entries(u.photos)){
+          if(!photos||!photos.length) continue;
+          // Convert slot key to readable name: living_room -> Living-Room
+          const slotName = slot.replace(/_/g,'-').replace(/\w/g,c=>c.toUpperCase());
+          for(let pi=0;pi<photos.length;pi++){
+            try{
+              const resp=await fetch(photos[pi].url);
+              const blob=await resp.blob();
+              const ext=blob.type.includes('png')?'png':'jpg';
+              // Name: Unit-1-102-Living-Room-1.jpg
+              const fname=`Unit-${unitLabel}-${slotName}-${pi+1}.${ext}`;
+              await driveFile(fname, blob, unitFolderId);
+            }catch(e){console.warn('Unit photo upload failed:',e);}
+          }
+        }
+      }
+    }
+    setStep(4,'done');
+    S.driveLink=`https://drive.google.com/drive/folders/${rootId}`;
+    saveInspectionToHistory();
+    toast(`✅ Uploaded to Drive: "${rootName}"`, 'ok');
+    // Auto-update ClickUp task with Drive link if task already created
+    if(S.cuTaskId) updateClickUpWithDriveLink();
+  }catch(e){console.error(e);toast('Upload failed: '+e.message,'err');}
+  finally{isUploading=false;render();}
+}
+
+function setStep(i,s){uploadSteps[i].status=s;if(s==='done'&&uploadSteps[i+1])uploadSteps[i+1].status='active';render();}
+
+// ── SAVE TO PHONE ──────────────────────────────────────────────────────────
+function saveToPhone(){
+  const blob=new Blob([buildReport()],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`inspection-${(S.address||'property').replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();toast('💾 Saved to device!','ok');
+}
+
+// ── REPORT BUILDER ─────────────────────────────────────────────────────────
+function buildReport(){
+  const isCMSA = ['ncb','mt','habib','santander'].includes(S.bank||'');
+  const isWells = S.bank==='wells';
+  const v = x => x||'—';
+  const yn = x => x==='yes'?'Yes':x==='no'?'No':x||'—';
+
+  const lines=[
+    'FIELD INSPECTION REPORT','='.repeat(50),'',
+    `Property: ${v(S.propName||S.address)}`,
+    `Address: ${v(S.address)}${S.city?', '+S.city:''}${S.state?', '+S.state:''}`,
+    `Bank: ${bankName()}`,
+    `Property Type: ${v(S.propType)}`,
+    `Inspection Date: ${v(S.inspDate)} ${v(S.inspTime)}`,
+    `Total Photos: ${totalPhotos()}`,'',
+    '── PROPERTY FACTS ──',
+    `Buildings: ${v(S.numBuildings)}`,
+    `Year Built: ${v(S.yearBuilt)}`,
+    `Year Renovated: ${v(S.yearRenovated)}`,
+    `Total Units: ${v(S.numUnits)}`,
+    `Occupied: ${v(S.numOccupied)}`,
+    `Vacant: ${v(S.numVacant)}`,
+    `Down: ${v(S.numDown)}`,
+    `Occupancy %: ${v(S.occupancyPct)}%`,
+    `Sq Ft: ${v(S.sqFt)}`,
+    `Parking: ${v(S.numParking)}`,
+    `Roof Accessible: ${yn(S.roofAccess)}`,
+    `Elevator: ${yn(S.elevator)}${S.numElevators?' ('+S.numElevators+' elevators)':''}`,
+    `Sprinkler: ${yn(S.sprinkler)}`,
+    `Amenities: ${v(S.amenities)}`,
+    `Area Distressed: ${yn(S.areaDistressed)}`,
+    `New Construction: ${yn(S.newConstruction)}`,
+    `Neighborhood/Notes: ${v(S.neighborhood)}`,'',
+    '── MANAGEMENT ──',
+    `Accompanied By: ${v(S.accompanied)}${S.accompaniedPhone?' — '+S.accompaniedPhone:''}`,
+    `Management Co: ${v(S.mgmtCompany)}`,
+    `Interviewee: ${v(S.mgmtContact)}${S.mgmtTitle?' ('+S.mgmtTitle+')':''}`,
+    `Phone: ${v(S.mgmtPhone)}`,
+    `Email: ${v(S.mgmtEmail)}`,
+    `On-Site Contact: ${v(S.onSiteName)}${S.onSitePhone?' — '+S.onSitePhone:''}`,
+    `Length at Property: ${v(S.mgmtLength)}`,
+    `Management Visit Frequency: ${v(S.mgmtVisitFreq)}`,
+    `Management Change: ${yn(S.mgmtChange)}`,
+  ];
+
+  // Utilities only for non-NCB/MT/HAB
+  if(!['ncb','mt','habib'].includes(S.bank||'')){
+    lines.push(
+      `Heat: ${v(S.heatPaidBy)}`,`Water: ${v(S.waterPaidBy)}`,
+      `Electric: ${v(S.electricPaidBy)}`,`Gas: ${v(S.gasPaidBy)}`,
+      `Trash: ${v(S.trashPaidBy)}`,`Cable: ${v(S.cablePaidBy)}`
+    );
+  }
+  lines.push(
+    `Fire/Damage: ${yn(S.fireDamage)}${S.fireDamageDetails?' — '+S.fireDamageDetails:''}`,
+    `Code Violations: ${yn(S.codeViolations)}${S.codeDetails?' — '+S.codeDetails:''}`,
+    `Rent Roll: ${yn(S.rentRoll)}`
+  );
+
+  // ── PHYSICAL CONDITION ──
+  lines.push('','── PHYSICAL CONDITION ──');
+  lines.push(`Overall Rating: ${v(S.overallRating)}`);
+  if(S.overallComment) lines.push(`Overall Comment: ${S.overallComment}`);
+
+  if(isCMSA){
+    // Full item-by-item CMSA condition
+    const EXT_ITEMS=[
+      ['Ingress/Egress','ingress'],['Parking Lot','parking'],['Striping','striping'],
+      ['Drainage','drainage'],['Retaining Walls','retainingwalls'],['Sidewalks','sidewalks'],
+      ['Landscaping','landscaping'],['Signage','signage'],['Site Lighting','sitelighting'],
+      ['Roof Condition','roofcondition'],['Flashing/Eaves/Ventilators','flashing'],
+      ['Gutters/Downspouts','gutters'],['Foundations','foundations'],
+      ['Exterior Walls','exteriorwalls'],['Stairs/Railings','stairsrailings'],
+      ['Glazing/Windows','glazingwindows'],['Storefronts','storefronts'],
+      ['Exterior Doors','exteriordoors'],['Amenities','amenities_ext'],
+      ['Loading Docks','loadingdocks'],['Paint','paint'],['Siding/Trim','sidingtrim'],
+      ['Balconies','balconies'],['Security','security'],['Refuse/Disposal','refuse'],
+    ];
+    const INT_ITEMS=[
+      ['Lobbies','lobbies'],['Hallways','hallways'],['Stairways','stairways'],
+      ['Interior Walls','interiorwalls'],['Painting/Wallcover','paintingwallcover'],
+      ['Flooring/Carpets/Tiles','flooring'],['Ceilings','ceilings'],
+      ['Interior Doors','interiordoors'],['Windows','windows'],
+      ['Kitchens','kitchens'],['Appliances','appliances'],['Fixtures','fixtures'],
+      ['Cabinets','cabinets'],['Plumbing/Bathrooms','plumbing'],
+      ['Electrical','electrical'],['Lighting','lighting'],['HVAC System','hvacsystem'],
+      ['Basement','basement'],['Mechanical Rooms','mechanicalrooms'],
+      ['Boilers/Water Heaters','boilers'],['Laundry Rooms','laundryrooms'],
+      ['Elevators/Escalators','elevators'],['Sprinklers/Fire Protection','sprinklers'],
+      ['Amenities','amenities_int'],
+    ];
+    lines.push('','EXTERIOR:');
+    EXT_ITEMS.forEach(([lbl,key])=>{ const val=S['cond_'+key]; if(val) lines.push(`  ${lbl}: ${val}`); });
+    lines.push('','INTERIOR:');
+    INT_ITEMS.forEach(([lbl,key])=>{ const val=S['cond_'+key]; if(val) lines.push(`  ${lbl}: ${val}`); });
+    if(S.boilerNote) lines.push(`  Boiler Room Notes: ${S.boilerNote}`);
+    if(S.exteriorAmenitiesNote) lines.push(`Exterior Amenities: ${S.exteriorAmenitiesNote}`);
+    if(S.improvementsThisYear) lines.push('','IMPROVEMENTS THIS YEAR:',S.improvementsThisYear);
+    if(S.improvementsPlanned) lines.push('','PLANNED IMPROVEMENTS (1-2 YEARS):',S.improvementsPlanned);
+    lines.push('',`Deferred Maintenance: ${yn(S.hasDM)}`);
+    if(S.hasDM==='yes'){
+      if(S.dmType) lines.push(`  Type: ${S.dmType}`);
+      if(S.dmLifeSafety) lines.push(`  Life/Safety Issue: ${yn(S.dmLifeSafety)}`);
+    }
+    if(S.dmDescription) lines.push(`  Description: ${S.dmDescription}`);
+
+    // M&T/Habib extras
+    if(['mt','habib'].includes(S.bank||'')){
+      lines.push('','SPECIAL QUESTIONS:',
+        `  Marijuana on property: ${yn(S.marijuana)}`,
+        `  Medical marijuana: ${yn(S.medMarijuana)}`,
+        `  Sexually oriented business: ${yn(S.sexBusiness)}`,
+        `  Underground Storage Tank: ${v(S.ustCert)}`);
+    }
+  } else if(isWells){
+    lines.push(
+      `Site Activity: ${v(S.siteActivity)}`,
+      `Location: ${v(S.siteLocation)}`,
+      `Elevation: ${v(S.siteElevation)}`,
+      `Adjacent Left: ${v(S.adjLeft)}`,
+      `Adjacent Right: ${v(S.adjRight)}`,
+      `Neighborhood State: ${v(S.nbhState)}`,
+      `Neighborhood Condition: ${v(S.nbhCondition)}`,
+      `Lease Signs: ${v(S.leaseSigns)}`,
+      `For Sale Signs: ${v(S.saleSigns)}`,
+      `Surrounding Area: ${(S.surroundingArea||[]).join(', ')||'—'}`,
+      `Compare to Neighborhood: ${v(S.compareNbh)}`,
+      '','PROPERTY CHARACTERISTIC:',
+      `  Overall Condition: ${v(S.condOverall)}`,
+      `  Accessibility: ${v(S.condAccessibility)}`,
+      `  Physical Appearance: ${v(S.condAppearance)}`,
+      `  Visibility: ${v(S.condVisibility)}`,
+      `  Landscaping: ${v(S.condLandscaping)}`,
+      `  Paving: ${v(S.condPaving)}`,
+      `  Lighting: ${v(S.condLighting)}`,
+      `  Windows: ${v(S.condWindows)}`,
+      `  Walls: ${v(S.condWalls)}`,
+      `  Roof: ${v(S.condRoof)}`,
+      `  Exterior Paint: ${v(S.condExtPaint)}`,
+      `  Marijuana on property: ${yn(S.marijuana)}`
+    );
+    if(S.dmDescription) lines.push('','DEFERRED MAINTENANCE:',S.dmDescription);
+  } else {
+    // Generic
+    lines.push(
+      `Site: ${v(S.condSite)} (${v(S.condSiteTrend)}) — ${v(S.condSiteNote)}`,
+      `Mechanical: ${v(S.condMech)} (${v(S.condMechTrend)}) — ${v(S.condMechNote)}`,
+      `Exteriors: ${v(S.condExt)} (${v(S.condExtTrend)}) — ${v(S.condExtNote)}`,
+      `Roof: ${v(S.condRoof)} (${v(S.condRoofTrend)}) — ${v(S.condRoofNote)}`,
+      `Occupied Units: ${v(S.condOccUnit)} (${v(S.condOccUnitTrend)}) — ${v(S.condOccUnitNote)}`,
+      `Vacant Units: ${v(S.condVacUnit)} (${v(S.condVacUnitTrend)}) — ${v(S.condVacUnitNote)}`,
+      `Common Areas: ${v(S.condCommon)} (${v(S.condCommonTrend)}) — ${v(S.condCommonNote)}`,
+      `Amenities: ${v(S.condAmen)} (${v(S.condAmenTrend)}) — ${v(S.condAmenNote)}`,
+      `Environmental: ${v(S.condEnv)} (${v(S.condEnvTrend)}) — ${v(S.condEnvNote)}`
+    );
+  }
+
+  // Santander extras
+  if(S.bank==='santander'){
+    lines.push('','── SANTANDER — LIMITATIONS ──',
+      `Mgmt unavailable: ${yn(S.limMgmtUnavail)}`,
+      `Mgmt exp <6mo: ${yn(S.limMgmtExp)}`,
+      `Units unavailable: ${yn(S.limUnitsUnavail)}`,
+      `Common areas unavail: ${yn(S.limCommonUnavail)}`,
+      `Snow: ${yn(S.limSnow)}`,
+      `Other: ${yn(S.limOther)}`,
+      `Comment: ${v(S.limComment)}`);
+    lines.push('','── SANTANDER — CRITICAL ITEMS ──',
+      `Violent Crime: ${yn(S.critCrime)}`,
+      `Insurance Loss: ${yn(S.critInsurance)}`,
+      `Life Safety: ${yn(S.critLifeSafety)}`,
+      `Down Units: ${yn(S.critDownUnits)}`,
+      `Code Violations: ${yn(S.critCodeViol)}`,
+      `Comment: ${v(S.critComment)}`);
+    lines.push('','── SANTANDER — COMPREHENSIVE RATINGS ──',
+      `Life Safety: ${v(S.lifeSafety)} — ${v(S.lifeSafetyNote)}`,
+      `Deferred Maintenance Outstanding: ${v(S.dmOutstanding)} — ${v(S.dmOutstandingNote)}`,
+      `ADA Compliance: ${v(S.adaCompliance)} — ${v(S.adaNote)}`);
+  }
+
+  // Photos
+  lines.push('','── PHOTOS ──');
+  S.sections.forEach(sid=>{
+    const lbl=(SECTION_TYPES.find(s=>s.id===sid)||{}).label||sid;
+    lines.push(`
+${lbl.toUpperCase()}`);
+    (cl()?.sections[sid]||[]).forEach(item=>{
+      const d=S.photoData[item.id]||{};
+      lines.push(`[${(d.photos||[]).length>0?'✓':' '}] ${item.label}${item.req?' (REQ)':''} — ${(d.photos||[]).length} photo(s)${d.note?' — '+d.note:''}`);
+    });
+  });
+
+  // Unit photos
+  if(S.units.length){
+    lines.push('\nUNIT PHOTOS');
+    S.units.forEach(u=>{
+      const total=Object.values(u.photos||{}).reduce((s,a)=>s+a.length,0);
+      lines.push(`  ${u.label||'Unit'} (${u.status}): ${total} photos`);
+      Object.entries(u.photos||{}).forEach(([slot,arr])=>{
+        if(arr&&arr.length) lines.push(`    ${slot.replace(/_/g,' ')}: ${arr.length}`);
+      });
+    });
+  }
+
+  lines.push('','── MISSING REQUIRED PHOTOS ──',...(missingReq().length?missingReq().map(m=>'⚠ '+m):['None']));
+  return lines.join('\n');
+}
+
+function parseEventToAssignment(evt){
+  const title = evt.summary||'';
+  const rawDesc = evt.description||'';
+
+  // Strip HTML tags Google Calendar sends in descriptions
+  const stripHtml = (html) => html
+    .replace(/<br\s*\/?>/gi,'\n')
+    .replace(/<\/p>/gi,'\n')
+    .replace(/<p[^>]*>/gi,'')
+    .replace(/<[^>]+>/g,'')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&nbsp;/g,' ').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+    .trim();
+
+  const cleanDesc = stripHtml(rawDesc);
+
+  const getField = (labels) => {
+    const arr = Array.isArray(labels)?labels:[labels];
+    for(const label of arr){
+      const regex = new RegExp(label+'[^\n]*?:\s*([^\n]+)', 'i');
+      const m = cleanDesc.match(regex);
+      if(m) return m[1].trim();
+    }
+    return '';
+  };
+
+  // Property manager = booking form default fields (First name, Last name, Email, Phone)
+  const firstName   = stripHtml(getField(['First name','First'])).split('\n')[0].trim();
+  const lastName    = stripHtml(getField(['Last name','Last'])).split('\n')[0].trim();
+  const mgmtContact = [firstName,lastName].filter(Boolean).join(' ');
+  const mgmtEmail   = getField(['Email address','Email']).split('\n')[0].trim();
+  const mgmtPhone   = getField(['Phone number','Phone']).replace(/[^0-9\s\-\.\+\(\)]/g,'').trim();
+  const mgmtCompany = getField(['Management company','Management']);
+
+  // On-site contact = custom fields
+  const rawContactName  = getField(['Contact Person','Contact Name','Contact','Site contact','Accompanied by']);
+  const rawContactPhone = getField(['Contact Phone Number','Contact Phone','Contact phone']);
+  const contactEmail    = getField(['Contact email']);
+  const contactName     = stripHtml(rawContactName).split('\n')[0].trim();
+  const contactPhone    = rawContactPhone.replace(/[^0-9\s\-\.\+\(\)]/g,'').trim();
+
+  // Address
+  const address = stripHtml(getField(['What is the property address','Property address','Address'])).split('\n')[0].trim();
+
+  // Bank
+  let bankRaw = getField(['Which bank is this inspection for','Bank']).toLowerCase();
+  const bankMap={
+    'ncb':'ncb','national cooperative bank':'ncb','national co-op':'ncb','national cooperative':'ncb',
+    'mt':'mt','m&t':'mt','m&t bank':'mt',
+    'santander':'santander',
+    'wells':'wells','wells fargo':'wells',
+    'habib':'habib','habib bank':'habib',
+    'other':'other',
+  };
+  const bank = bankMap[bankRaw.trim()]||null;
+
+  // Access notes
+  const accessNotes = stripHtml(getField(['Will there be any access restrictions','Access restrictions','Access'])).split('\n')[0].trim();
+
+  // Sections
+  const secRaw = getField(['Which sections need to be inspected','Sections']).toLowerCase();
+  const secMap = {exterior:'exterior',interior:'interior',deferred:'deferred',
+    'deferred maintenance':'deferred',commercial:'commercial',occupied:'occupied',vacant:'vacant'};
+  const sections = secRaw ? secRaw.split(/[,;]+/).map(s=>{
+    const t=s.trim();
+    for(const [k,v] of Object.entries(secMap)) if(t.includes(k)) return v;
+    return null;
+  }).filter(Boolean) : [];
+
+  // Time
+  const startTime = evt.start?.dateTime || evt.start?.date || '';
+  const timeStr = startTime ? new Date(startTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
+
+  return {
+    id: 'cal_'+evt.id,
+    rawTitle: title,
+    address: address || title,
+    city:'', state:'',
+    propName: getField(['Property name','Property']),
+    bank, sections,
+    contactName, contactPhone, contactEmail,
+    accessNotes,
+    mgmtCompany, mgmtContact, mgmtPhone, mgmtEmail,
+    time: timeStr, source:'calendar', status:'pending',
+    calEventId: evt.id,
+  };
+}
+
+async function loadCalendarEvents(){
+  if(!gToken||!calendarId) return;
+  const events = await fetchTodayEvents();
+  calendarEvents = events.map(parseEventToAssignment);
+  render();
+}
+
+function renderCalendarBar(){
+  if(!gToken) return `<div class="cal-pill" onclick="signIn()">📅 Connect Google Calendar</div>`;
+  if(!calendarId) return `<div class="cal-pill" onclick="openCalendarPicker()">📅 Select Inspection Calendar</div>`;
+  return `<div class="cal-pill linked" onclick="openCalendarPicker()">✅ ${esc(calendarName||'Calendar linked')} <span style="opacity:.6">·</span> <span onclick="loadCalendarEvents();event.stopPropagation()" style="text-decoration:underline">Refresh</span></div>`;
+}
+
+function renderCalendarEvents(){
+  // Filter out dismissed events
+  const dismissed = JSON.parse(localStorage.getItem('sf_dismissed_cal')||'[]');
+  const visible = calendarEvents.filter(a=>!dismissed.includes(a.id));
+  if(!visible.length) return '';
+
+  const cards = visible.map(a=>{
+    const isDone = a.status==='done';
+    const bankLabel = (BANKS.find(b=>b.id===a.bank)||{}).name||a.bank||'';
+    // Show raw title if no bank detected
+    const subtitle = a.time?(isDone?'✓ Done':'🕐 '+a.time)+(bankLabel?' · '+bankLabel:''):bankLabel||a.rawTitle||'';
+    return `<div class="swipe-wrap" id="swrap-${a.id}">
+      <div class="swipe-bg" id="sbg-${a.id}">← Dismiss</div>
+      <div class="assign-card swipe-card${isDone?' done':''}" id="scard-${a.id}" data-swipe-id="${a.id}">
+        <div class="assign-top">
+          <div class="assign-status ${isDone?'done':''}" onclick="toggleCalEventDone('${a.id}')">${isDone?'✓':''}</div>
+          <div class="assign-info">
+            <div class="assign-addr">${esc(a.address||a.rawTitle||'Event')}</div>
+            <div class="assign-bank">${esc(subtitle)}</div>
+            ${a.contactName?`<div class="assign-contact" style="margin-top:4px">👤 <strong>${esc(a.contactName)}</strong></div>`:''}
+            ${a.contactPhone?`<div style="font-size:11px;color:var(--muted2);margin-top:2px">📞 ${esc(a.contactPhone)}</div>`:''}
+            ${a.contactEmail?`<div style="font-size:11px;color:var(--muted2);margin-top:2px">✉️ ${esc(a.contactEmail)}</div>`:''}
+          </div>
+          <span style="font-size:10px;background:rgba(0,212,255,.1);color:var(--accent);padding:2px 6px;border-radius:6px;flex-shrink:0">Cal</span>
+        </div>
+        <div class="assign-actions">
+          ${a.contactPhone?`<button class="act-btn call" onclick="callContact('${a.contactPhone}')">📞 Call</button>`:''}
+          ${a.contactPhone?`<button class="act-btn text" onclick="textContact('${a.contactPhone}','${esc(a.contactName||'')}','${esc(a.address||'')}')">💬 Text</button>`:''}
+          ${a.contactEmail?`<button class="act-btn" style="border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,.08)" onclick="emailGeneralContact('onway','${esc(a.contactEmail)}','${esc(a.contactName||'')}','${esc(a.address||'')}')">✉️ Email</button>`:''}
+          <button class="act-btn start" onclick="startInspectionFromAssignment(${JSON.stringify(a).replace(/"/g,'&quot;')})">▶ Start</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const dismissedCount = dismissed.length;
+  const restoreBtn = dismissedCount>0 ? `<span style="color:var(--accent);text-decoration:underline;cursor:pointer" onclick="restoreDismissed()">Restore ${dismissedCount}</span>` : '';
+
+  return `<div style="margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-weight:700;display:flex;justify-content:space-between;align-items:center">
+    <span>📅 From Calendar (${visible.length})</span>${restoreBtn}
+  </div>
+  <div class="swipe-hint">← Swipe left to dismiss non-inspection events</div>
+  ${cards}`;
+}
+
+function toggleCalEventDone(id){
+  const evt = calendarEvents.find(e=>e.id===id);
+  if(evt) evt.status = evt.status==='done'?'pending':'done';
+  render();
+}
+
+async function fetchCalendars(){
+  if(!gToken) return [];
+  try{
+    const res = await fetch(
+      'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=50',
+      {headers:{'Authorization':'Bearer '+gToken}}
+    );
+    if(res.status===401){gToken=null;toast('Session expired — please reconnect','err');return [];}
+    const data = await res.json();
+    return (data.items||[]).sort((a,b)=>(a.summary||'').localeCompare(b.summary||''));
+  }catch(e){
+    console.error('fetchCalendars error',e);
+    toast('Could not load calendars','err');
+    return [];
+  }
+}
+
+async function fetchTodayEvents(){
+  if(!gToken||!calendarId) return [];
+  try{
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1).toISOString();
+    const url = 'https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(calendarId)+'/events'
+      +'?timeMin='+start+'&timeMax='+end+'&singleEvents=true&orderBy=startTime&maxResults=50';
+    const res = await fetch(url, {headers:{'Authorization':'Bearer '+gToken}});
+    if(res.status===401){gToken=null;toast('Session expired — please reconnect','err');return [];}
+    const data = await res.json();
+    return data.items||[];
+  }catch(e){
+    console.error('fetchTodayEvents error',e);
+    return [];
+  }
+}
+
+async function openCalendarPicker(){
+  if(!gToken){signIn();return;}
+  toast('Loading calendars…');
+  const cals = await fetchCalendars();
+  if(!cals.length){toast('No calendars found','err');return;}
+
+  const modal = document.getElementById('assign-modal');
+  const body = document.getElementById('assign-modal-body');
+  modal.classList.remove('hidden');
+
+  // Store cals on window so click handler can look them up safely
+  window._calPickerList = cals;
+
+  body.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0;font-family:var(--display)">Select Calendar</h3>
+      <button class="modal-close" onclick="closeAssignModal()">×</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Choose your inspection calendar. Today's events will appear automatically each day.</p>
+    <div class="cal-list">
+      ${cals.map((c,i)=>`
+        <div class="cal-item" data-cal-index="${i}">
+          <div class="cal-dot" style="background:${c.backgroundColor||'#4f8ef7'}"></div>
+          <div>
+            <div class="cal-item-name">${esc(c.summary||c.id)}</div>
+            <div class="cal-item-acc">${esc(c.id)}</div>
+          </div>
+          ${calendarId===c.id?'<span class="cal-check">✓</span>':''}
+        </div>`).join('')}
+    </div>
+  `;
+
+  // Bind clicks after innerHTML set
+  body.querySelectorAll('[data-cal-index]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const cal = window._calPickerList[parseInt(el.dataset.calIndex)];
+      if(cal) selectCalendar(cal.id, cal.summary||cal.id);
+    });
+  });
+}
+
+function selectCalendar(id, name){
+  calendarId = id;
+  calendarName = name;
+  localStorage.setItem('sf_calendar_id', id);
+  localStorage.setItem('sf_calendar_name', name);
+  closeAssignModal();
+  toast(`✅ Calendar set: ${name}`,'ok');
+  loadCalendarEvents();
+}
+
+// ── GOOGLE MAPS ───────────────────────────────────────────────────────────
+let mapsReady = false;
+function initMaps(){ mapsReady = true; }
+
+function getDirections(addr){
+  if(!addr.trim()){toast('No address','err');return;}
+  const encoded = encodeURIComponent(addr);
+  // Opens in Apple Maps on iPhone, Google Maps on Android/desktop
+  window.open(`https://maps.google.com/?q=${encoded}`,'_blank');
+}
+
+function initAddressAutocomplete(inputId){
+  if(!mapsReady||typeof google==='undefined'||!google.maps?.places) return;
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  const ac = new google.maps.places.Autocomplete(input,{
+    types:['address'], componentRestrictions:{country:'us'}
+  });
+  ac.addListener('place_changed',()=>{
+    const place = ac.getPlace();
+    if(!place.address_components) return;
+    const get = types => {
+      const c = place.address_components.find(c=>c.types.some(t=>types.includes(t)));
+      return c ? c.long_name : '';
+    };
+    const getShort = types => {
+      const c = place.address_components.find(c=>c.types.some(t=>types.includes(t)));
+      return c ? c.short_name : '';
+    };
+    const streetNum = get(['street_number']);
+    const route = get(['route']);
+    const city = get(['locality','sublocality']);
+    const state = getShort(['administrative_area_level_1']);
+    const zip = get(['postal_code']);
+    const fullAddr = [streetNum,route].filter(Boolean).join(' ');
+    if(inputId==='f-addr'||inputId==='am-addr'){
+      // Update state
+      if(inputId==='f-addr'){
+        S.address=fullAddr; S.city=city; S.state=state; S.zip=zip;
+      } else {
+        if(window._aTemp){ window._aTemp.address=fullAddr; window._aTemp.city=city; window._aTemp.state=state; }
+      }
+      // Fill city/state fields if present
+      const cityEl=document.getElementById(inputId==='f-addr'?'f-city':'am-city');
+      const stateEl=document.getElementById(inputId==='f-addr'?'f-state':'am-state');
+      if(cityEl) cityEl.value=city;
+      if(stateEl) stateEl.value=state;
+    }
+  });
+}
+
+// ── 48HR REOPEN ────────────────────────────────────────────────────────────
+function getRecentInspections(){
+  try{
+    const all = JSON.parse(localStorage.getItem('sf_inspections_full')||'[]');
+    const cutoff = Date.now() - 48*60*60*1000;
+    return all.filter(i=>i.savedAt > cutoff);
+  }catch(e){return [];}
+}
+
+function saveFullInspection(){
+  try{
+    const all = JSON.parse(localStorage.getItem('sf_inspections_full')||'[]');
+    const entry = {
+      id: S.cuTaskId||Date.now()+'',
+      savedAt: Date.now(),
+      address: S.address, city: S.city, bank: S.bank,
+      propName: S.propName, inspDate: S.inspDate,
+      cuTaskUrl: S.cuTaskUrl||'',
+      snapshot: JSON.stringify(S)
+    };
+    const idx = all.findIndex(i=>i.address===S.address&&i.inspDate===S.inspDate);
+    if(idx>=0) all[idx]=entry; else all.push(entry);
+    // Keep only last 20
+    const trimmed = all.sort((a,b)=>b.savedAt-a.savedAt).slice(0,20);
+    localStorage.setItem('sf_inspections_full', JSON.stringify(trimmed));
+  }catch(e){console.warn('Save failed:',e);}
+}
+
+function reopenInspection(id){
+  try{
+    const all = JSON.parse(localStorage.getItem('sf_inspections_full')||'[]');
+    const entry = all.find(i=>i.id===id);
+    if(!entry){toast('Inspection not found','err');return;}
+    const saved = JSON.parse(entry.snapshot);
+    // Restore state but keep photos as-is (can't restore blob URLs)
+    Object.assign(S, saved);
+    S.photoData = {}; // Photos can't be restored from localStorage
+    S.screen = 'facts';
+    closeAssignModal();
+    render();
+    toast('✅ Inspection reopened — photos need to be re-added','ok');
+  }catch(e){toast('Could not reopen: '+e.message,'err');}
+}
+
+function renderRecentInspections(){
+  const recent = getRecentInspections();
+  if(!recent.length) return '';
+  const items = recent.map(i=>{
+    const hrs = Math.round((Date.now()-i.savedAt)/3600000);
+    const timeLeft = 48-hrs;
+    return `<div class="today-item">
+      <div>
+        <div class="today-addr">${esc(i.address)}</div>
+        <div class="today-meta">${esc((BANKS.find(b=>b.id===i.bank)||{}).name||i.bank)} · ${hrs}hr ago · ${timeLeft}hr left to edit</div>
+      </div>
+      <button class="act-btn start" style="flex:none;padding:6px 10px;font-size:11px" onclick="reopenInspection('${i.id}')">Reopen</button>
+    </div>`;
+  }).join('');
+  return `<div class="today-card" style="border-color:rgba(124,92,252,.3)">
+    <h3 style="color:var(--accent2)">🔄 Recent (48hr Edit Window) <span style="color:var(--muted);font-weight:400">${recent.length}</span></h3>
+    ${items}
+  </div>`;
+}
+
+// ── SWIPE TO DISMISS ──────────────────────────────────────────────────────
+function initSwipeCards(){
+  document.querySelectorAll('[data-swipe-id]').forEach(card=>{
+    const id = card.dataset.swipeId;
+    const bg = document.getElementById('sbg-'+id);
+    let startX=0, currentX=0, isSwiping=false;
+    const DISMISS_THRESHOLD = 100;
+
+    function onStart(x){
+      startX=x; currentX=0; isSwiping=true;
+      card.classList.add('swiping');
+    }
+    function onMove(x){
+      if(!isSwiping) return;
+      currentX = Math.min(0, x - startX); // only left swipe
+      card.style.transform = `translateX(${currentX}px)`;
+      const pct = Math.min(1, Math.abs(currentX)/DISMISS_THRESHOLD);
+      if(bg){ bg.style.opacity=pct; bg.classList.toggle('visible', pct>0.3); }
+    }
+    function onEnd(){
+      if(!isSwiping) return;
+      isSwiping=false;
+      card.classList.remove('swiping');
+      if(Math.abs(currentX) >= DISMISS_THRESHOLD){
+        // Dismiss it
+        card.style.transform = `translateX(-110%)`;
+        card.style.opacity = '0';
+        card.style.transition = 'transform .3s ease, opacity .3s ease';
+        setTimeout(()=>dismissCalEvent(id), 300);
+      } else {
+        // Snap back
+        card.style.transform = '';
+        if(bg){ bg.style.opacity='0'; bg.classList.remove('visible'); }
+      }
+      currentX=0;
+    }
+
+    // Touch events
+    card.addEventListener('touchstart',e=>onStart(e.touches[0].clientX),{passive:true});
+    card.addEventListener('touchmove',e=>onMove(e.touches[0].clientX),{passive:true});
+    card.addEventListener('touchend',onEnd);
+    // Mouse events (desktop testing)
+    card.addEventListener('mousedown',e=>{onStart(e.clientX);
+      const mm=ev=>onMove(ev.clientX);
+      const mu=()=>{onEnd();document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+      document.addEventListener('mousemove',mm);
+      document.addEventListener('mouseup',mu);
+    });
+  });
+}
+
+function dismissCalEvent(id){
+  try{
+    const dismissed = JSON.parse(localStorage.getItem('sf_dismissed_cal')||'[]');
+    if(!dismissed.includes(id)) dismissed.push(id);
+    localStorage.setItem('sf_dismissed_cal', JSON.stringify(dismissed));
+  }catch(e){}
+  render();
+}
+
+function restoreDismissed(){
+  localStorage.removeItem('sf_dismissed_cal');
+  toast('All events restored','ok');
+  render();
+}
+
+// Also store raw title in parseEventToAssignment
+// ── ASSIGNMENT MODAL ──────────────────────────────────────────────────────
+function openAssignModal(id){
+  const all = getAssignments();
+  const existing = id ? all.find(a=>a.id===id) : null;
+  const a = existing || {};
+  const modal = document.getElementById('assign-modal');
+  const body = document.getElementById('assign-modal-body');
+  modal.classList.remove('hidden');
+
+  body.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0;font-family:var(--display)">${id?'Edit Assignment':'Add Assignment'}</h3>
+      <button class="modal-close" onclick="closeAssignModal()">×</button>
+    </div>
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>🏠 Property</h3>
+      <div class="field-row"><div class="field-lbl">Address *</div><input class="field-inp" id="am-addr" placeholder="123 Main St" value="${esc(a.address||'')}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field-row"><div class="field-lbl">City</div><input class="field-inp" id="am-city" placeholder="New York" value="${esc(a.city||'')}"></div>
+        <div class="field-row"><div class="field-lbl">State</div><input class="field-inp" id="am-state" placeholder="NY" value="${esc(a.state||'')}" maxlength="2"></div>
+      </div>
+      <div class="field-row"><div class="field-lbl">Property Name</div><input class="field-inp" id="am-propname" placeholder="Riverside Apartments" value="${esc(a.propName||'')}"></div>
+    </div>
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>👤 Contact</h3>
+      <div class="field-row"><div class="field-lbl">Contact Name</div><input class="field-inp" id="am-cname" placeholder="Barry Allen" value="${esc(a.contactName||'')}"></div>
+      <div class="field-row"><div class="field-lbl">Phone</div><input class="field-inp" id="am-cphone" type="tel" placeholder="555-1234" value="${esc(a.contactPhone||'')}"></div>
+      <div class="field-row"><div class="field-lbl">Email</div><input class="field-inp" id="am-cemail" type="email" placeholder="contact@property.com" value="${esc(a.contactEmail||'')}"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="act-btn call" id="am-call-btn" style="padding:10px">📞 Call Now</button>
+        <button class="act-btn text" id="am-text-btn" style="padding:10px">💬 Text Now</button>
+      </div>
+    </div>
+    <div class="section-card" style="margin-bottom:10px">
+      <h3>🏦 Bank</h3>
+      <div class="chip-grid">${BANKS.map(b=>`<button class="chip${(a.bank||'')=== b.id?' sel':''}" data-ambank="${b.id}">${b.name}</button>`).join('')}</div>
+    </div>
+    <div class="section-card" style="margin-bottom:16px">
+      <h3>📂 Sections</h3>
+      <div class="chip-grid" id="am-sections-grid">
+        ${SECTION_TYPES.map(s=>`<button class="chip${(a.sections||[]).includes(s.id)?' sel2':''}" data-amsec="${s.id}">${s.label}</button>`).join('')}
+      </div>
+    </div>
+    <button class="btn-primary" id="am-save-btn" style="margin-bottom:8px">${id?'Update':'Add to Today'}</button>
+    ${id?`<button class="btn-secondary" id="am-del-btn" style="color:var(--red);border-color:var(--red)">🗑️ Remove Assignment</button>`:''}
+  `;
+
+  // Temp state
+  window._aTemp = {
+    id: a.id||Date.now()+'',
+    address:a.address||'', city:a.city||'', state:a.state||'',
+    propName:a.propName||'', bank:a.bank||null, sections:a.sections||[],
+    contactName:a.contactName||'', contactPhone:a.contactPhone||'',
+    contactEmail:a.contactEmail||'', status:a.status||'pending'
+  };
+
+  // Bind modal events
+  ['am-addr','am-city','am-state','am-propname','am-cname','am-cphone','am-cemail'].forEach(fid=>{
+    const keyMap={'am-addr':'address','am-city':'city','am-state':'state','am-propname':'propName',
+      'am-cname':'contactName','am-cphone':'contactPhone','am-cemail':'contactEmail'};
+    const el=document.getElementById(fid);
+    if(el) el.addEventListener('input',e=>window._aTemp[keyMap[fid]]=e.target.value);
+  });
+
+  document.querySelectorAll('[data-ambank]').forEach(b=>b.addEventListener('click',()=>{
+    window._aTemp.bank=b.dataset.ambank;
+    document.querySelectorAll('[data-ambank]').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+  }));
+
+  document.querySelectorAll('[data-amsec]').forEach(b=>b.addEventListener('click',()=>{
+    const s=b.dataset.amsec;
+    if(window._aTemp.sections.includes(s)) window._aTemp.sections=window._aTemp.sections.filter(x=>x!==s);
+    else window._aTemp.sections.push(s);
+    b.classList.toggle('sel2');
+  }));
+
+  document.getElementById('am-call-btn').addEventListener('click',()=>{
+    callContact(document.getElementById('am-cphone').value);
+  });
+  document.getElementById('am-text-btn').addEventListener('click',()=>{
+    textContact(document.getElementById('am-cphone').value, document.getElementById('am-cname').value, document.getElementById('am-addr').value);
+  });
+
+  document.getElementById('am-save-btn').addEventListener('click',()=>{
+    const t=window._aTemp;
+    if(!t.address){toast('Address is required','err');return;}
+    const all=getAssignments();
+    const idx=all.findIndex(x=>x.id===t.id);
+    if(idx>=0) all[idx]=t; else all.push(t);
+    saveAssignments(all);
+    closeAssignModal();
+    render();
+    toast('✅ Assignment saved!','ok');
+  });
+
+  const delBtn=document.getElementById('am-del-btn');
+  if(delBtn) delBtn.addEventListener('click',()=>{
+    deleteAssignment(window._aTemp.id);
+    closeAssignModal();
+    toast('Assignment removed','ok');
+  });
+}
+
+function closeAssignModal(){
+  document.getElementById('assign-modal').classList.add('hidden');
+}
+
+// ── CLICKUP UPDATE ────────────────────────────────────────────────────────
+async function updateClickUpWithDriveLink(){
+  if(!S.cuTaskId||!S.driveLink) return;
+  try{
+    await fetch(`https://api.clickup.com/api/v2/task/${S.cuTaskId}`,{
+      method:'PUT',
+      headers:{'Authorization':CU_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({description:buildClickUpDescription()})
+    });
+    toast('📋 ClickUp task updated with Drive link!','ok');
+  }catch(e){console.warn('ClickUp update failed:',e);}
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg,type=''){
+  const ex=document.querySelector('.toast');if(ex)ex.remove();
+  const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
+}
+
+// ── TODAY'S INSPECTIONS ───────────────────────────────────────────────────
+function getTodayInspections(){
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const all=JSON.parse(localStorage.getItem('sf_inspections')||'[]');
+    return all.filter(i=>i.date===today);
+  }catch(e){return[];}
+}
+
+function saveInspectionToHistory(){
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const all=JSON.parse(localStorage.getItem('sf_inspections')||'[]');
+    const entry={
+      id:Date.now()+'',date:today,address:S.address,city:S.city,
+      bank:(BANKS.find(b=>b.id===S.bank)||{}).name||S.bank,
+      photos:totalPhotos(),units:S.units.length,
+      cuTaskUrl:S.cuTaskUrl||'',status:totalPhotos()>0?'complete':'in-progress',
+      savedAt:Date.now(),
+      fullState:JSON.stringify({...S,screen:'facts'})
+    };
+    // Replace if same address+date exists
+    const idx=all.findIndex(i=>i.date===today&&i.address===S.address);
+    if(idx>=0) all[idx]=entry; else all.push(entry);
+    localStorage.setItem('sf_inspections',JSON.stringify(all));
+  }catch(e){}
+}
+
+function renderTodayInspections(){
+  // Show last 48hrs of inspections
+  const cutoff = Date.now() - (48*60*60*1000);
+  try{
+    const all = JSON.parse(localStorage.getItem('sf_inspections')||'[]');
+    const recent = all.filter(i=>new Date(i.date).getTime()>=cutoff||i.date===new Date().toISOString().slice(0,10));
+    if(!recent.length) return '';
+    const rows = recent.map(i=>{
+      const savedAt = i.savedAt||0;
+      const ageMs = Date.now()-savedAt;
+      const canReopen = ageMs < 48*60*60*1000;
+      const hoursLeft = canReopen ? Math.max(0,Math.round((48*60*60*1000-ageMs)/3600000)) : 0;
+      return `<div class="today-item">
+        <div style="flex:1">
+          <div class="today-addr">${esc(i.address)}</div>
+          <div class="today-meta">${esc(i.bank)} · ${i.photos} photos · ${i.units} units · ${i.date}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="today-badge ${i.status==='complete'?'tb-done':'tb-inprog'}">${i.status==='complete'?'Done':'In Progress'}</span>
+          ${canReopen?`<button onclick="reopenInspection('${i.id}')" style="background:rgba(0,212,255,.1);border:1px solid var(--accent);color:var(--accent);padding:4px 8px;border-radius:8px;font-size:10px;cursor:pointer;font-family:var(--font)">↩ Reopen (${hoursLeft}h)</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="today-card">
+      <h3>🕐 Recent Inspections (48hr) <span style="color:var(--muted);font-weight:400">${recent.length}</span></h3>
+      ${rows}
+    </div>`;
+  }catch(e){return '';}
+}
+
+function reopenInspection(id){
+  try{
+    const all = JSON.parse(localStorage.getItem('sf_inspections')||'[]');
+    const item = all.find(i=>i.id===id);
+    if(!item){toast('Inspection not found','err');return;}
+    // Check 48hr window
+    const ageMs = Date.now()-(item.savedAt||0);
+    if(ageMs > 48*60*60*1000){toast('48 hour edit window has expired','err');return;}
+    // Restore saved state
+    if(item.fullState){
+      const saved = JSON.parse(item.fullState);
+      Object.assign(S, saved);
+      S.screen='facts';
+      render();
+      toast('✅ Inspection reopened — make your changes and re-upload','ok');
+    } else {
+      // Partial restore - just pre-fill address and bank
+      S.address = item.address||'';
+      S.city = item.city||'';
+      S.bank = null; // they'll need to re-select
+      S.screen='setup';
+      render();
+      toast('Partial restore — please verify your settings','ok');
+    }
+  }catch(e){toast('Could not reopen: '+e.message,'err');}
+}
+
+// ── TEXT ON MY WAY ─────────────────────────────────────────────────────────
+function textOnMyWay(){
+  const phone=S.onSitePhone||S.mgmtPhone||'';
+  const name=S.onSiteName||S.mgmtContact||'there';
+  const addr=(S.address||'')+(S.city?', '+S.city:'');
+  const bankLabel=(BANKS.find(b=>b.id===S.bank)||{}).name||'Spectrum Field Services';
+  if(!phone){toast('No contact phone number entered yet','err');return;}
+  const msg=encodeURIComponent(`Hi ${name}, this is your inspector from ${bankLabel}. I am on my way for today's inspection at ${addr}. I will arrive shortly. Please ensure access is available. Thank you! - Briahna Savage`);
+  window.location.href=`sms:${phone.replace(/[^0-9]/g,'')}?body=${msg}`;
+}
+
+// ── EMAIL FEATURES ─────────────────────────────────────────────────────────
+function emailRentRollRequest(){
+  // Always send to management contact, CC on-site contact
+  const to=S.mgmtEmail||'';
+  const cc=S.onSiteEmail||'';
+  const addr=`${S.address}, ${S.city}`;
+  const sub=encodeURIComponent(`Rent Roll Request — ${addr}`);
+  const body=encodeURIComponent(
+`Dear ${S.mgmtContact||'Property Manager'},
+
+I am following up regarding the property inspection recently conducted at ${addr}.
+
+As part of the inspection requirements, a current rent roll is required to complete the inspection report. Could you please provide the rent roll at your earliest convenience?
+
+The rent roll should include:
+- Unit number
+- Current use (occupied/vacant)
+- Monthly rent amount
+
+You can reply directly to this email or contact me at your convenience.
+
+On-Site Contact: ${S.onSiteName||'N/A'} — ${S.onSitePhone||'N/A'}
+Management Contact: ${S.mgmtContact||'N/A'} — ${S.mgmtPhone||'N/A'}
+
+Thank you for your cooperation.
+
+Regards,
+Spectrum Field Services Inspector`);
+  window.location.href=`mailto:${to}?cc=${cc}&subject=${sub}&body=${body}`;
+}
+
+function emailGeneralContact(type, toOverride, nameOverride, addrOverride){
+  const to=toOverride||S.onSiteEmail||S.mgmtEmail||'';
+  const contactName=nameOverride||S.onSiteName||S.mgmtContact||'Property Contact';
+  const addr=addrOverride||`${S.address}, ${S.city}`;
+  let sub='', body='';
+  if(type==='onway'){
+    sub=encodeURIComponent(`Inspection Today — ${addr}`);
+    body=encodeURIComponent(
+`Dear ${contactName},
+
+This is a courtesy notice that your property inspection at ${addr} is scheduled for today, ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}.
+
+Please ensure the following are available:
+- Access to all common areas and mechanical rooms
+- Roof access if possible
+- Available units for inspection
+
+On-Site Contact: ${S.onSiteName||'N/A'} — ${S.onSitePhone||'N/A'}
+Management Contact: ${S.mgmtContact||'N/A'} — ${S.mgmtPhone||'N/A'}
+
+Thank you,
+Spectrum Field Services`);
+  } else if(type==='access'){
+    sub=encodeURIComponent(`Access Request — ${addr}`);
+    body=encodeURIComponent(
+`Dear ${contactName},
+
+I am currently conducting an inspection at ${addr} and require access to the following areas:
+- [ ] Roof
+- [ ] Boiler/Mechanical Room
+- [ ] Vacant Units
+- [ ] Common Areas
+
+Please contact me at your earliest convenience to arrange access.
+
+On-Site Contact: ${S.onSiteName||'N/A'} — ${S.onSitePhone||'N/A'}
+Management Contact: ${S.mgmtContact||'N/A'} — ${S.mgmtPhone||'N/A'}
+
+Thank you,
+Spectrum Field Services`);
+  }
+  window.location.href=`mailto:${to}?subject=${sub}&body=${body}`;
+}
+
+function showEmailMenu(){
+  // Show a quick action sheet for email options
+  const existing=document.getElementById('email-sheet');
+  if(existing){existing.remove();return;}
+  const sheet=document.createElement('div');
+  sheet.id='email-sheet';
+  sheet.style.cssText='position:fixed;bottom:0;left:0;right:0;background:var(--surface2);border-top:1px solid var(--border2);padding:16px;z-index:300;max-width:500px;margin:0 auto';
+  sheet.innerHTML=`
+    <div style="font-family:var(--display);font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text)">📧 Email Contact</div>
+    <button onclick="emailGeneralContact('onway');document.getElementById('email-sheet').remove()" class="btn-secondary" style="margin-bottom:8px">📅 Inspection Today Notice</button>
+    <button onclick="emailGeneralContact('access');document.getElementById('email-sheet').remove()" class="btn-secondary" style="margin-bottom:8px">🔑 Access Request</button>
+    <button onclick="emailRentRollRequest();document.getElementById('email-sheet').remove()" class="btn-secondary" style="margin-bottom:8px">📄 Rent Roll Request</button>
+    <button onclick="document.getElementById('email-sheet').remove()" class="btn-secondary" style="color:var(--muted)">Cancel</button>
+  `;
+  document.body.appendChild(sheet);
+}
+
+// ── CLICKUP INTEGRATION ────────────────────────────────────────────────────
+async function fetchClickUpLists(){
+  try{
+    // Get all spaces in workspace
+    const teamRes = await fetch('https://api.clickup.com/api/v2/team',{
+      headers:{'Authorization':CU_TOKEN}
+    });
+    const teamData = await teamRes.json();
+    const teamId = teamData.teams?.[0]?.id;
+    if(!teamId) throw new Error('No workspace found');
+
+    // Get all spaces
+    const spacesRes = await fetch(`https://api.clickup.com/api/v2/team/${teamId}/space?archived=false`,{
+      headers:{'Authorization':CU_TOKEN}
+    });
+    const spacesData = await spacesRes.json();
+    const spaces = spacesData.spaces||[];
+
+    // Get lists from each space
+    const allLists = [];
+    for(const space of spaces){
+      try{
+        // Folderless lists
+        const flRes = await fetch(`https://api.clickup.com/api/v2/space/${space.id}/list?archived=false`,{
+          headers:{'Authorization':CU_TOKEN}
+        });
+        const flData = await flRes.json();
+        (flData.lists||[]).forEach(l=>allLists.push({id:l.id,name:l.name,space:space.name}));
+
+        // Folders
+        const fRes = await fetch(`https://api.clickup.com/api/v2/space/${space.id}/folder?archived=false`,{
+          headers:{'Authorization':CU_TOKEN}
+        });
+        const fData = await fRes.json();
+        for(const folder of (fData.folders||[])){
+          const lRes = await fetch(`https://api.clickup.com/api/v2/folder/${folder.id}/list?archived=false`,{
+            headers:{'Authorization':CU_TOKEN}
+          });
+          const lData = await lRes.json();
+          (lData.lists||[]).forEach(l=>allLists.push({id:l.id,name:l.name,space:space.name,folder:folder.name}));
+        }
+      }catch(e){console.warn('Space fetch failed:',e);}
+    }
+    return allLists;
+  }catch(e){
+    console.error(e);
+    toast('ClickUp error: '+e.message,'err');
+    return [];
+  }
+}
+
+async function openClickUpListPicker(){
+  const modal = document.getElementById('assign-modal');
+  const body = document.getElementById('assign-modal-body');
+  modal.classList.remove('hidden');
+  body.innerHTML=`<div style="font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:8px">Select ClickUp List</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">Choose which list to create inspection tasks in.</p>
+    <div id="cu-list-loading" style="text-align:center;padding:20px;color:var(--muted)">⏳ Loading your lists...</div>`;
+
+  const lists = await fetchClickUpLists();
+
+  if(!lists.length){
+    body.innerHTML+=`<p style="color:var(--red);font-size:13px">No lists found. Check your API token.</p>
+      <button class="btn-secondary" onclick="closeAssignModal()">Close</button>`;
+    return;
+  }
+
+  // Group by space
+  const bySpace = {};
+  lists.forEach(l=>{
+    const key = l.folder?`${l.space} › ${l.folder}`:l.space;
+    if(!bySpace[key]) bySpace[key]=[];
+    bySpace[key].push(l);
+  });
+
+  const rows = Object.entries(bySpace).map(([space,ls])=>`
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700;margin:12px 0 6px">${esc(space)}</div>
+    ${ls.map(l=>`<div class="cal-item" onclick="selectClickUpList('${l.id}','${esc(l.name)}')">
+      <div style="width:10px;height:10px;background:var(--accent2);border-radius:50%;flex-shrink:0"></div>
+      <div><div class="cal-item-name">${esc(l.name)}</div></div>
+      ${CU_LIST_ID===l.id?'<span class="cal-check">✓</span>':''}
+    </div>`).join('')}`).join('');
+
+  document.getElementById('cu-list-loading').outerHTML = `<div class="cal-list">${rows}</div>
+    <button class="btn-secondary" onclick="closeAssignModal()" style="margin-top:12px">Cancel</button>`;
+}
+
+function selectClickUpList(id, name){
+  CU_LIST_ID = id;
+  CU_LIST_NAME = name;
+  localStorage.setItem('sf_cu_list_id', id);
+  localStorage.setItem('sf_cu_list_name', name);
+  closeAssignModal();
+  toast(`✅ ClickUp list set: ${name}`,'ok');
+  // Now create the task
+  createClickUpTask();
+}
+
+// ── CLICKUP LIST PICKER ───────────────────────────────────────────────────
+async function fetchClickUpLists(){
+  try{
+    // Get workspace teams
+    const teamsRes = await fetch('https://api.clickup.com/api/v2/team',{
+      headers:{'Authorization':CU_TOKEN}
+    });
+    const teamsData = await teamsRes.json();
+    const teams = teamsData.teams||[];
+    if(!teams.length) throw new Error('No workspaces found');
+
+    // Get spaces from first team
+    const teamId = teams[0].id;
+    const spacesRes = await fetch(`https://api.clickup.com/api/v2/team/${teamId}/space?archived=false`,{
+      headers:{'Authorization':CU_TOKEN}
+    });
+    const spacesData = await spacesRes.json();
+    const spaces = spacesData.spaces||[];
+
+    // Get all lists from all spaces
+    const allLists = [];
+    for(const space of spaces){
+      // Folderless lists
+      const flRes = await fetch(`https://api.clickup.com/api/v2/space/${space.id}/list?archived=false`,{
+        headers:{'Authorization':CU_TOKEN}
+      });
+      const flData = await flRes.json();
+      (flData.lists||[]).forEach(l=>allLists.push({...l, spaceName:space.name}));
+
+      // Folders
+      const fRes = await fetch(`https://api.clickup.com/api/v2/space/${space.id}/folder?archived=false`,{
+        headers:{'Authorization':CU_TOKEN}
+      });
+      const fData = await fRes.json();
+      for(const folder of (fData.folders||[])){
+        const folListRes = await fetch(`https://api.clickup.com/api/v2/folder/${folder.id}/list?archived=false`,{
+          headers:{'Authorization':CU_TOKEN}
+        });
+        const folListData = await folListRes.json();
+        (folListData.lists||[]).forEach(l=>allLists.push({...l, spaceName:space.name, folderName:folder.name}));
+      }
+    }
+    return allLists;
+  }catch(e){
+    console.error('fetchClickUpLists error:',e);
+    throw e;
+  }
+}
+
+async function openClickUpListPicker(){
+  toast('Loading your ClickUp lists…');
+  try{
+    const lists = await fetchClickUpLists();
+    if(!lists.length){ toast('No lists found in ClickUp','err'); return; }
+
+    const modal = document.getElementById('assign-modal');
+    const body = document.getElementById('assign-modal-body');
+    modal.classList.remove('hidden');
+
+    body.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="margin:0;font-family:var(--display)">Select ClickUp List</h3>
+        <button class="modal-close" onclick="closeAssignModal()">×</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Choose the master inspection list where tasks will be created.</p>
+      <div class="cal-list">
+        ${lists.map(l=>`
+          <div class="cal-item" onclick="selectClickUpList('${l.id}','${esc(l.name)}')">
+            <div class="cal-dot" style="background:${l.status?.color||'#7B68EE'}"></div>
+            <div>
+              <div class="cal-item-name">${esc(l.name)}</div>
+              <div class="cal-item-acc">${esc(l.spaceName||'')}${l.folderName?' › '+esc(l.folderName):''}</div>
+            </div>
+            ${CU_LIST_ID===l.id?'<span class="cal-check">✓</span>':''}
+          </div>`).join('')}
+      </div>
+    `;
+  }catch(e){
+    toast('Could not load ClickUp lists: '+e.message,'err');
+  }
+}
+
+function selectClickUpList(id, name){
+  CU_LIST_ID = id;
+  CU_LIST_NAME = name;
+  localStorage.setItem('sf_cu_list_id', id);
+  localStorage.setItem('sf_cu_list_name', name);
+  closeAssignModal();
+  toast(`✅ ClickUp list set: ${name}`,'ok');
+  render();
+}
+
+async function createClickUpTask(){
+  if(!CU_LIST_ID){
+    // Show list picker first
+    await openClickUpListPicker();
+    return;
+  }
+  const btn=document.getElementById('clickup-btn');
+  if(S.cuTaskUrl){window.open(S.cuTaskUrl,'_blank');return;}
+  if(btn) btn.textContent='⏳ Creating task…';
+
+  try{
+    // Get reporter user ID
+    const membersRes = await fetch(`https://api.clickup.com/api/v2/list/${CU_LIST_ID}/member`,{
+      headers:{'Authorization':CU_TOKEN,'Content-Type':'application/json'}
+    });
+    const membersData = await membersRes.json();
+    const reporter = (membersData.members||[]).find(m=>
+      m.email===CU_REPORTER||m.username===CU_REPORTER
+    );
+
+    const dateStr = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const bankLabel = (BANKS.find(b=>b.id===S.bank)||{}).name||'';
+    const title = `${S.address}${S.city?', '+S.city:''} — ${bankLabel} — ${dateStr}`;
+
+    const taskBody = {
+      name: title,
+      description: buildClickUpDescription(),
+      status: 'to do',
+      priority: 2,
+      due_date: new Date(Date.now()+86400000*2).getTime(),
+      assignees: reporter?[reporter.id]:[],
+    };
+
+    const res = await fetch(`https://api.clickup.com/api/v2/list/${CU_LIST_ID}/task`,{
+      method:'POST',
+      headers:{'Authorization':CU_TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify(taskBody)
+    });
+    const data = await res.json();
+
+    if(data.id){
+      S.cuTaskId = data.id;
+      S.cuTaskUrl = data.url||`https://app.clickup.com/t/${data.id}`;
+      saveInspectionToHistory();
+      toast('✅ ClickUp task created!','ok');
+      render();
+    } else {
+      const errMsg = data.err||data.ECODE||JSON.stringify(data);
+      // Any list ID error — clear and show picker
+      if(errMsg.toLowerCase().includes('list')||errMsg.toLowerCase().includes('invalid')||errMsg.toLowerCase().includes('validate')){
+        CU_LIST_ID = null;
+        CU_LIST_NAME = null;
+        localStorage.removeItem('sf_cu_list_id');
+        localStorage.removeItem('sf_cu_list_name');
+        toast('ClickUp list error — please select your list','err');
+        setTimeout(openClickUpListPicker, 800);
+      } else {
+        throw new Error(errMsg);
+      }
+    }
+  }catch(e){
+    console.error(e);
+    toast('ClickUp error: '+e.message,'err');
+    if(btn) btn.textContent='📋 Create ClickUp Task';
+  }
+}
+
+function buildClickUpDescription(){
+  const addr=`${S.address}${S.city?', '+S.city:''}${S.state?', '+S.state:''}`;
+  const bank=(BANKS.find(b=>b.id===S.bank)||{}).name||'';
+  const v=x=>x||'—';
+  const yn=x=>x==='yes'?'Yes':x==='no'?'No':'—';
+  const r=x=>x?`${x}/5`:' —';
+
+  // ── Property Info ──
+  let desc = `## 🏢 Property Information
+**Address:** ${v(addr)}
+**Property Name:** ${v(S.propName)}
+**Property Type:** ${v(S.propType)}
+**Bank:** ${v(bank)}
+**Inspection Date:** ${v(S.inspDate)} ${v(S.inspTime)}
+**Rent Roll Provided:** ${yn(S.rentRoll)}
+
+---
+## 🏗️ Property Facts
+| Field | Value |
+|---|---|
+| Buildings | ${v(S.numBuildings)} |
+| Year Built | ${v(S.yearBuilt)} |
+| Year Renovated | ${v(S.yearRenovated)} |
+| Total Units | ${v(S.numUnits)} |
+| Occupied Units | ${v(S.numOccupied)} |
+| Vacant Units | ${v(S.numVacant)} |
+| Down Units | ${v(S.numDown)} |
+| Occupancy % | ${v(S.occupancyPct)}% |
+| Square Feet | ${v(S.sqFt)} |
+| Parking Spots | ${v(S.numParking)} |
+| Roof Accessible | ${yn(S.roofAccess)} |
+| Elevator | ${yn(S.elevator)} |
+| Sprinkler | ${yn(S.sprinkler)} |
+| Amenities | ${v(S.amenities)} |
+
+**Neighborhood:** ${v(S.neighborhood)}
+**Area Distressed:** ${yn(S.areaDistressed)} | **New Construction Nearby:** ${yn(S.newConstruction)}
+
+---
+## 👤 Contacts
+**Accompanied By:** ${v(S.accompanied)} ${v(S.accompaniedPhone)}
+
+**On-Site Contact:**
+- Name: ${v(S.onSiteName)}
+- Phone: ${v(S.onSitePhone)}
+- Email: ${v(S.onSiteEmail)}
+
+**Management Company:** ${v(S.mgmtCompany)}
+- Interviewee: ${v(S.mgmtContact)} (${v(S.mgmtTitle)})
+- Phone: ${v(S.mgmtPhone)}
+- Email: ${v(S.mgmtEmail)}
+- Length at Property: ${v(S.mgmtLength)}
+- Management Change Since Last Inspection: ${yn(S.mgmtChange)}
+
+**Utilities — Who Pays:**
+| Utility | Paid By |
+|---|---|
+| Heat | ${v(S.heatPaidBy)} |
+| Water | ${v(S.waterPaidBy)} |
+| Electric | ${v(S.electricPaidBy)} |
+| Gas | ${v(S.gasPaidBy)} |
+| Trash | ${v(S.trashPaidBy)} |
+| Cable | ${v(S.cablePaidBy)} |
+
+**Fire/Water Damage (Past 12 mo):** ${yn(S.fireDamage)}${S.fireDamageDetails?' — '+S.fireDamageDetails:''}
+**Code Violations (Past 12 mo):** ${yn(S.codeViolations)}${S.codeDetails?' — '+S.codeDetails:''}
+
+---
+## ⭐ Overall Condition Rating: ${r(S.overallRating)}
+${v(S.overallComment)}
+
+## 🔍 Physical Condition Assessment
+| Area | Rating | Trend | Notes |
+|---|---|---|---|
+| Site | ${r(S.condSite)} | ${v(S.condSiteTrend)} | ${v(S.condSiteNote)} |
+| Building/Mechanical | ${r(S.condMech)} | ${v(S.condMechTrend)} | ${v(S.condMechNote)} |
+| Building Exteriors | ${r(S.condExt)} | ${v(S.condExtTrend)} | ${v(S.condExtNote)} |
+| Roof | ${r(S.condRoof)} | ${v(S.condRoofTrend)} | ${v(S.condRoofNote)} |
+| Occupied Units | ${r(S.condOccUnit)} | ${v(S.condOccUnitTrend)} | ${v(S.condOccUnitNote)} |
+| Vacant Units | ${r(S.condVacUnit)} | ${v(S.condVacUnitTrend)} | ${v(S.condVacUnitNote)} |
+| Common Areas | ${r(S.condCommon)} | ${v(S.condCommonTrend)} | ${v(S.condCommonNote)} |
+| Amenities | ${r(S.condAmen)} | ${v(S.condAmenTrend)} | ${v(S.condAmenNote)} |
+| Environmental | ${r(S.condEnv)} | ${v(S.condEnvTrend)} | ${v(S.condEnvNote)} |
+`;
+
+  // ── Santander extras ──
+  if(S.bank==='santander'){
+    desc += `
+---
+## 🚨 Santander — Limitations
+| Limitation | Response |
+|---|---|
+| Management unavailable | ${yn(S.limMgmtUnavail)} |
+| Mgmt experience <6 months | ${yn(S.limMgmtExp)} |
+| Units unavailable | ${yn(S.limUnitsUnavail)} |
+| Common areas unavailable | ${yn(S.limCommonUnavail)} |
+| Snow covering exterior | ${yn(S.limSnow)} |
+| Other | ${yn(S.limOther)} |
+${S.limComment?'**Comment:** '+S.limComment:''}
+
+## 🚨 Critical Items
+| Item | Response |
+|---|---|
+| Violent crime on property | ${yn(S.critCrime)} |
+| Significant insurance loss | ${yn(S.critInsurance)} |
+| Life/safety issue noted | ${yn(S.critLifeSafety)} |
+| Down units not previously noted | ${yn(S.critDownUnits)} |
+| Outstanding code violations | ${yn(S.critCodeViol)} |
+${S.critComment?'**Comment:** '+S.critComment:''}
+`;
+  }
+
+  // ── Units Inspected ──
+  if(S.units.length){
+    const statusIcon=st=>st==='occupied'?'🟢':st==='vacant'?'🔵':st==='commercial'?'🏪':'🔴';
+    const unitRows=S.units.map(u=>{
+      const photoSummary=u.photos?Object.entries(u.photos).filter(([,arr])=>arr&&arr.length>0).map(([slot,arr])=>{
+        const name=slot.replace(/_/g,' ').replace(/(?:^|\s)\S/g,c=>c.toUpperCase());
+        return `${name}(${arr.length})`;
+      }).join(', '):'—';
+      const isComm=u.status==='commercial';
+      return `| ${u.label||'—'} | ${statusIcon(u.status)} ${u.status||'—'} | ${isComm?v(u.bizName):v(u.type)} | ${isComm?'Sq:'+v(u.sqFt):v(u.baths)} | ${v(u.condition)}/5 | ${photoSummary} | ${v(u.notes)} |`;
+    }).join('\n');
+    desc += `
+---
+## 🏠 Units Inspected (${S.units.length})
+| Unit | Status | Type/Business | Baths/SqFt | Condition | Photos | Notes |
+|---|---|---|---|---|---|---|
+${unitRows}
+`;
+  }
+
+  // ── Photo Checklist ──
+  desc += `
+---
+## 📸 Photo Checklist
+**Total Photos:** ${totalPhotos()} | **Minimum Required:** ${CL[S.bank]?.photoMin||'—'}
+`;
+  S.sections.forEach(sid=>{
+    const lbl=(SECTION_TYPES.find(s=>s.id===sid)||{}).label||sid;
+    const items=CL[S.bank]?.sections[sid]||[];
+    desc += `\n**${lbl}**\n`;
+    items.forEach(item=>{
+      const d=S.photoData[item.id]||{};
+      const cnt=(d.photos||[]).length;
+      desc += `${cnt>0?'✅':'❌'} ${item.label}${item.req?' _(required)_':''} — ${cnt} photo(s)${d.note?' — '+d.note:''}\n`;
+    });
+  });
+
+  // ── Missing photos ──
+  const missing=missingReq();
+  if(missing.length){
+    desc += `\n---\n## ⚠️ Missing Required Photos\n`;
+    missing.forEach(m=>desc+=`- ${m}\n`);
+  }
+
+  // ── Drive link ──
+  if(S.mgmtVisitFreq) desc += `\n**Management Visit Frequency:** ${S.mgmtVisitFreq}`;
+  if(S.boilerNote) desc += `\n**Boiler Room Notes:** ${S.boilerNote}`;
+  if(S.exteriorAmenitiesNote) desc += `\n**Exterior Amenities:** ${S.exteriorAmenitiesNote}`;
+
+  if(S.driveLink){
+    desc += `\n---\n## 📁 Google Drive Photos\n${S.driveLink}\n`;
+  }
+
+  return desc;
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+// Initialize Google immediately when script runs
+initGoogle();
+
+window.addEventListener('load',()=>{
+  // Calendar state already initialized at top level
+  render(); // Re-render to show calendar bar with restored state
+});
+render();
+</script>
+</body>
+</html>
