@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
+<title>SF Photo Sorter</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1e2333;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);
+  --text:#f0f2f7;--text2:#9aa0b8;--muted:#5a6180;
+  --accent:#4f8ef7;--accent2:#7c6df8;
+  --green:#22d17a;--red:#f45b5b;--amber:#f0a940;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r:10px;--r2:16px;--r3:22px;
+  --glow:0 0 40px rgba(79,142,247,.15);--shadow:0 2px 12px rgba(0,0,0,.4);
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+body{padding:0 0 80px}
+
+/* HEADER */
+.site-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(15,17,23,.95);backdrop-filter:blur(12px);z-index:50;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-mark{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.logo-text{font-size:14px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:10px;color:var(--muted)}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.drive-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.drive-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.drive-dot.on{background:var(--green)}
+
+/* ADDRESS BAR — sticky below header */
+.address-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px}
+.address-bar label{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.05em}
+.address-inp{flex:1;background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:14px;font-family:var(--font);outline:none;transition:border-color .15s;min-width:0}
+.address-inp:focus{border-color:var(--accent)}
+.address-inp::placeholder{color:var(--muted)}
+
+/* MAIN */
+.container{max-width:900px;margin:0 auto;padding:24px 20px 0}
+.step-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.step-num{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.step-title{font-size:14px;font-weight:600;color:var(--text)}
+.step-desc{font-size:12px;color:var(--muted);margin-bottom:16px;padding-left:30px;line-height:1.6}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+
+/* BANK SELECT */
+.bank-grid{display:flex;flex-wrap:wrap;gap:7px}
+.bank-btn{background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s}
+.bank-btn:hover{border-color:var(--border2);color:var(--text)}
+.bank-btn.active{background:rgba(79,142,247,.12);border-color:var(--accent);color:var(--accent)}
+
+/* DROP ZONE */
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--r2);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(79,142,247,.04)}
+.drop-icon{font-size:36px;margin-bottom:10px}
+.drop-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.drop-sub{font-size:12px;color:var(--muted)}
+.drop-input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* CURRENT PHOTO — sticky review panel */
+.current-panel{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);margin-bottom:14px;overflow:hidden;display:none}
+.current-panel.visible{display:block}
+.current-top{display:flex;gap:14px;padding:14px}
+.current-img-wrap{position:relative;flex-shrink:0}
+.current-img{width:120px;height:90px;object-fit:cover;border-radius:var(--r);cursor:zoom-in;background:var(--surface2);display:block}
+.current-img:hover{opacity:.85}
+.current-info{flex:1;min-width:0}
+.current-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin-bottom:5px}
+.current-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.current-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.current-slot{font-size:12px;color:var(--green);margin-top:5px;font-weight:500}
+.current-nav{display:flex;align-items:center;gap:6px;margin-top:10px}
+.nav-btn{background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s}
+.nav-btn:hover{border-color:var(--border2);color:var(--text)}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.nav-counter{font-size:11px;color:var(--muted);font-family:var(--mono);margin:0 4px}
+
+/* SHORTCUT CHIPS — quick slot picker above full list */
+.shortcut-row{padding:10px 14px 12px;border-bottom:1px solid var(--border)}
+.shortcut-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px}
+.sc-search-wrap{position:relative;margin-bottom:8px}
+.sc-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.sc-search{width:100%;background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:8px 10px 8px 32px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s}
+.sc-search:focus{border-color:var(--accent)}
+.sc-search::placeholder{color:var(--muted)}
+.sc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.sc-chip{background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap}
+.sc-chip:hover{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.08)}
+.sc-chip.sel{background:rgba(79,142,247,.12);border-color:var(--accent);color:var(--accent)}
+.sc-chip.first-result{border-color:rgba(79,142,247,.4);color:var(--accent)}
+.sc-no-results{font-size:12px;color:var(--muted);padding:4px 2px;font-style:italic}
+
+/* PHOTO GRID */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:16px}
+.photo-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;cursor:pointer;transition:all .15s}
+.photo-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.photo-card.assigned{border-color:var(--green)}
+.photo-card.unassigned{border-color:var(--amber)}
+.photo-card.active-card{border-color:var(--accent);box-shadow:0 0 0 2px rgba(79,142,247,.3)}
+.photo-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--surface)}
+.photo-label{padding:6px 7px}
+.photo-seq{font-size:9px;font-weight:700;color:var(--accent);font-family:var(--mono);margin-bottom:2px}
+.photo-slot{font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.photo-cap{font-size:9px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic}
+.photo-badge{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.75);border-radius:4px;padding:2px 5px;font-size:9px;font-weight:700;font-family:var(--mono)}
+.photo-badge.ok{color:var(--green)}
+.photo-badge.pending{color:var(--amber)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.hidden{display:none}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r3) var(--r3) 0 0;padding:20px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:0 -8px 60px rgba(0,0,0,.6),var(--glow)}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:3px}
+.modal-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.modal-img{width:100%;max-height:180px;object-fit:cover;border-radius:var(--r);margin-bottom:14px;background:var(--surface2);cursor:zoom-in}
+.slot-group-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:10px 0 5px;padding-left:2px}
+.slot-btn{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);padding:8px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);margin-bottom:5px;text-align:left;transition:all .15s}
+.slot-btn:hover{border-color:var(--border2);color:var(--text)}
+.slot-btn.sel{background:rgba(79,142,247,.1);border-color:var(--accent);color:var(--accent)}
+.slot-seq{font-size:9px;font-family:var(--mono);color:var(--muted);margin-left:auto;flex-shrink:0}
+.cap-row{margin-top:12px}
+.cap-lbl{font-size:10px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.cap-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:9px 11px;border-radius:var(--r);font-size:14px;font-family:var(--font);outline:none;transition:border-color .15s}
+.cap-input:focus{border-color:var(--accent)}
+.cap-input::placeholder{color:var(--muted)}
+.modal-actions{display:flex;gap:7px;margin-top:14px}
+.btn{padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);border:none;transition:all .15s}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;flex:1}
+.btn-primary:hover{opacity:.9}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+.btn-danger{background:rgba(244,91,91,.1);color:var(--red);border:1.5px solid rgba(244,91,91,.3)}
+
+/* SUMMARY */
+.summary-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.sum-stat{text-align:center}
+.sum-num{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.sum-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.sum-num.green{color:var(--green)}.sum-num.amber{color:var(--amber)}.sum-num.blue{color:var(--accent)}
+.sum-divider{width:1px;height:32px;background:var(--border);flex-shrink:0}
+.progress-track{height:3px;background:var(--surface2);border-radius:2px;margin:10px 0;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .4s ease}
+
+/* UPLOAD */
+.upload-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;margin-bottom:10px}
+.upload-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.upload-row:last-child{border-bottom:none}
+.upload-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-done{background:var(--green)}.dot-active{background:var(--accent);animation:pulse .8s infinite}
+.dot-wait{background:var(--muted)}.dot-fail{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.upload-name{flex:1;color:var(--text2);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upload-status-txt{color:var(--muted);flex-shrink:0;font-size:11px}
+
+/* ACTION BTNS */
+.action-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn-large{padding:12px 24px;border-radius:var(--r2);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);border:none;display:flex;align-items:center;gap:7px;transition:all .15s}
+.btn-large-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 2px 20px rgba(79,142,247,.3)}
+.btn-large-primary:hover{opacity:.9}.btn-large-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-large-ghost{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border)}
+.btn-large-ghost:hover{border-color:var(--border2);color:var(--text)}
+.btn-connect{background:rgba(79,142,247,.1);border:1.5px solid rgba(79,142,247,.3);color:var(--accent);padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s}
+.btn-connect:hover{background:rgba(79,142,247,.18)}
+.btn-connect.connected{background:rgba(34,209,122,.1);border-color:rgba(34,209,122,.3);color:var(--green)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;max-width:90vw;text-align:center;box-shadow:var(--shadow);pointer-events:none;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}.toast.ok{border-color:rgba(34,209,122,.4);color:var(--green)}.toast.err{border-color:rgba(244,91,91,.4);color:var(--red)}
+
+/* LIGHTBOX */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:300;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.lightbox.hidden{display:none}
+.lightbox img{max-width:94vw;max-height:90vh;object-fit:contain;border-radius:8px}
+.lightbox-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:20px;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty-icon{font-size:44px;margin-bottom:10px}
+
+/* ── FOLDER PICKER ── */
+.fp-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.fp-modal-bg.hidden{display:none}
+.fp-panel{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r3) var(--r3) 0 0;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.5)}
+.fp-header{padding:16px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.fp-header h4{font-size:15px;font-weight:600;color:var(--text)}
+.fp-header p{font-size:11px;color:var(--muted);margin-top:2px}
+.fp-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+.fp-search-wrap{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative}
+.fp-search-icon{position:absolute;left:24px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.fp-search{width:100%;background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:8px 10px 8px 32px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s}
+.fp-search:focus{border-color:var(--accent)}
+.fp-search::placeholder{color:var(--muted)}
+.fp-list{flex:1;overflow-y:auto;padding:8px 0}
+.fp-item{display:flex;align-items:center;gap:12px;padding:11px 18px;cursor:pointer;transition:background .1s;border-bottom:0.5px solid var(--border)}
+.fp-item:last-child{border-bottom:none}
+.fp-item:hover{background:var(--surface2)}
+.fp-item.selected{background:rgba(79,142,247,.08)}
+.fp-icon{font-size:20px;flex-shrink:0}
+.fp-item-name{flex:1;font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-item-meta{font-size:10px;color:var(--muted);margin-top:2px}
+.fp-item-check{color:var(--green);font-size:16px;flex-shrink:0}
+.fp-footer{padding:12px 18px max(env(safe-area-inset-bottom),14px);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:8px}
+.fp-empty{text-align:center;padding:32px 20px;color:var(--muted)}
+.fp-empty-icon{font-size:40px;margin-bottom:10px}
+.fp-spinner{display:flex;align-items:center;justify-content:center;padding:32px;gap:10px;color:var(--muted);font-size:13px}
+.fp-spinner-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:fpBounce .9s infinite}
+.fp-spinner-dot:nth-child(2){animation-delay:.15s}
+.fp-spinner-dot:nth-child(3){animation-delay:.3s}
+@keyframes fpBounce{0%,80%,100%{transform:scale(0.7);opacity:.5}40%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">
+    <div class="logo-mark">SF</div>
+    <div><div class="logo-text">Photo Sorter</div><div class="logo-sub">Savage Field Inspections</div></div>
+  </div>
+  <div class="header-right">
+    <div class="drive-bar"><div class="drive-dot" id="drive-dot"></div><span id="drive-status-txt">Not connected</span></div>
+    <button class="btn-connect" id="connect-btn" onclick="signIn()">Connect Google</button>
+  </div>
+</header>
+
+<!-- Sticky address bar -->
+<div class="address-bar">
+  <label for="address-inp">📍 Address</label>
+  <input class="address-inp" id="address-inp" placeholder="123 Main St, Bronx NY — used for Drive folder name" oninput="localStorage.setItem('ps_address',this.value)">
+</div>
+
+<div class="container">
+
+  <!-- Step 1: Bank -->
+  <div class="step-row"><div class="step-num">1</div><div class="step-title">Select Bank / Vendor</div></div>
+  <div class="step-desc">Sets the vendor sequence order for file numbering.</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="bank-grid" id="bank-grid"></div>
+  </div>
+
+  <!-- Step 2: Upload -->
+  <div class="step-row"><div class="step-num">2</div><div class="step-title">Upload Photos</div></div>
+  <div class="step-desc">Drop all inspection photos at once — assign slots next.</div>
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" accept="image/*" multiple id="file-input" class="drop-input">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title">Drop photos here</div>
+    <div class="drop-sub">or tap to browse — select all at once</div>
+  </div>
+
+  <!-- Step 3: Assign -->
+  <div id="assign-section" style="display:none">
+    <div class="step-row" style="margin-top:20px"><div class="step-num">3</div><div class="step-title">Assign Slots &amp; Captions</div></div>
+    <div class="step-desc">Use the quick shortcuts to assign common slots instantly, or tap any photo for the full list. Each assigned photo advances automatically.</div>
+
+    <!-- Current photo review panel — sticky -->
+    <div class="current-panel" id="current-panel">
+      <div class="current-top">
+        <div class="current-img-wrap">
+          <img class="current-img" id="current-img" src="" alt="" onclick="openLightbox(this.src)">
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="current-label" id="current-label">Current Photo</div>
+          <div class="current-name" id="current-name">—</div>
+          <div class="current-meta" id="current-meta"></div>
+          <div class="current-slot" id="current-slot"></div>
+          <div class="current-nav">
+            <button class="nav-btn" id="prev-btn" onclick="navigatePhoto(-1)">← Prev</button>
+            <span class="nav-counter" id="nav-counter">1 / 1</span>
+            <button class="nav-btn" id="next-btn" onclick="navigatePhoto(1)">Next →</button>
+            <button class="nav-btn" onclick="openModal(activePhotoIdx)" style="margin-left:4px;border-color:var(--accent);color:var(--accent)">Full List</button>
+          </div>
+        </div>
+      </div>
+      <!-- Quick shortcut chips -->
+      <div class="shortcut-row" id="shortcut-row">
+        <div class="shortcut-label">Quick Assign</div>
+        <div class="sc-search-wrap">
+          <span class="sc-search-icon">🔍</span>
+          <input class="sc-search" id="sc-search" placeholder="Type to search slots… (e.g. &quot;broad&quot;, &quot;DM&quot;, &quot;roof&quot;, &quot;unit&quot;)" oninput="onShortcutSearch(this.value)" onkeydown="onShortcutKey(event)">
+        </div>
+        <div class="sc-chips" id="sc-chips"></div>
+      </div>
+    </div>
+
+    <div class="summary-bar" id="summary-bar"></div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="photo-grid" id="photo-grid"></div>
+
+    <div class="action-row" style="margin-bottom:8px">
+      <button class="btn-large btn-large-primary" id="upload-btn" onclick="startUpload()" disabled>☁️ Upload to Drive</button>
+      <button class="btn-large btn-large-ghost" onclick="clearAll()">Clear All</button>
+    </div>
+    <div style="margin-bottom:20px">
+      <button id="select-folder-btn" onclick="openFolderPicker()" style="background:var(--surface);border:1.5px dashed var(--border2);color:var(--text2);padding:9px 16px;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:7px;transition:all .15s;width:100%">
+        <span>📁</span><span id="select-folder-label">Add to existing Drive folder…</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 4: Upload -->
+  <div id="upload-section" style="display:none;margin-top:20px">
+    <div class="step-row"><div class="step-num">4</div><div class="step-title">Uploading to Google Drive</div></div>
+    <div class="step-desc" id="upload-folder-desc">Uploading to Photo Sort folder…</div>
+    <div class="upload-card" id="upload-log"></div>
+    <div class="progress-track"><div class="progress-fill" id="upload-progress" style="width:0%"></div></div>
+    <div id="upload-done" style="display:none;margin-top:14px">
+      <div style="text-align:center;padding:22px;background:rgba(34,209,122,.06);border:1px solid rgba(34,209,122,.2);border-radius:var(--r2)">
+        <div style="font-size:38px;margin-bottom:8px">✅</div>
+        <div style="font-size:16px;font-weight:600;color:var(--green);margin-bottom:5px">Upload Complete</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px" id="upload-summary-txt"></div>
+        <a id="drive-link" href="#" target="_blank" style="color:var(--accent);font-size:13px;text-decoration:underline">Open in Google Drive ↗</a>
+        <div style="margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button class="btn-large btn-large-primary" onclick="addMorePhotos()" style="font-size:13px;padding:10px 20px">
+            ➕ Add More Photos
+          </button>
+          <button class="btn-large btn-large-ghost" onclick="openFolderPicker(true)" style="font-size:13px;padding:10px 20px">
+            📁 Different Folder
+          </button>
+          <button class="btn-large btn-large-ghost" onclick="clearAll()" style="font-size:13px;padding:10px 20px">
+            🗑 New Session
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Slot modal -->
+<div class="modal-bg hidden" id="slot-modal">
+  <div class="modal">
+    <h3>Assign Photo</h3>
+    <div class="modal-sub" id="modal-sub"></div>
+    <img id="modal-img" class="modal-img" src="" alt="" onclick="openLightbox(this.src)">
+    <div id="slot-list"></div>
+    <div class="cap-row">
+      <div class="cap-lbl">Caption</div>
+      <input class="cap-input" id="cap-input" placeholder="Auto-filled from slot — edit freely">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveSlot()">Assign →</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="removePhoto()" title="Remove photo">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox hidden" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="">
+  <button class="lightbox-close">✕</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const GCL_ID = '608140101331-krho9nv7021d0c262b0j199omb8m1jss.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+const BANKS = [
+  {id:'ncb',name:'NCB'},{id:'mt',name:'M&T Bank'},{id:'santander',name:'Santander'},
+  {id:'wells',name:'Wells Fargo'},{id:'habib',name:'Habib'},{id:'esquire',name:'Esquire'},{id:'other',name:'Other'},
+];
+
+const PHOTO_ORDER = [
+  {id:'broad',        label:'Broad View / Glamour Shot',      group:'Exterior'},
+  {id:'signage',      label:'Signage',                         group:'Exterior'},
+  {id:'addr_verify',  label:'Address Verification',            group:'Exterior'},
+  {id:'front',        label:'Front Elevation',                 group:'Exterior'},
+  {id:'rear',         label:'Rear Elevation',                  group:'Exterior'},
+  {id:'left',         label:'Left Side Elevation',             group:'Exterior'},
+  {id:'right',        label:'Right Side Elevation',            group:'Exterior'},
+  {id:'roof',         label:'Roof / Roof Line',                group:'Exterior'},
+  {id:'ingress',      label:'Ingress / Egress',                group:'Exterior'},
+  {id:'parking',      label:'Parking Lot',                     group:'Exterior'},
+  {id:'parking_gar',  label:'Parking Garage',                  group:'Exterior'},
+  {id:'common_ext',   label:'Exterior Common Areas',           group:'Exterior'},
+  {id:'grounds',      label:'Grounds / Landscaping',           group:'Exterior'},
+  {id:'amenities_ext',label:'Exterior Amenities',              group:'Exterior'},
+  {id:'surrounding',  label:'Surrounding / Adjacent Areas',    group:'Exterior'},
+  {id:'street',       label:'Street Views – N/S/E/W',         group:'Exterior'},
+  {id:'amenities_int',label:'Interior Amenities',              group:'Interior'},
+  {id:'common_int',   label:'Interior Common Areas',           group:'Interior'},
+  {id:'lobby',        label:'Lobby / Office',                  group:'Interior'},
+  {id:'elec_meter',   label:'Electrical Meter',                group:'Interior'},
+  {id:'gas_meter',    label:'Gas Meter',                       group:'Interior'},
+  {id:'boiler',       label:'Boiler Room',                     group:'Interior'},
+  {id:'hvac',         label:'HVAC System',                     group:'Interior'},
+  {id:'fireext',      label:'Fire Extinguisher',               group:'Interior'},
+  {id:'gfci',         label:'GFCI Outlet',                     group:'Interior'},
+  {id:'co',           label:'CO Detector',                     group:'Interior'},
+  {id:'occ_living',   label:'Occupied Unit – Living Room',     group:'Units'},
+  {id:'occ_kitchen',  label:'Occupied Unit – Kitchen',         group:'Units'},
+  {id:'occ_bathroom', label:'Occupied Unit – Bathroom',        group:'Units'},
+  {id:'occ_bedroom',  label:'Occupied Unit – Bedroom',         group:'Units'},
+  {id:'vac_living',   label:'Vacant Unit – Living Room',       group:'Units'},
+  {id:'vac_kitchen',  label:'Vacant Unit – Kitchen',           group:'Units'},
+  {id:'vac_bathroom', label:'Vacant Unit – Bathroom',          group:'Units'},
+  {id:'vac_bedroom',  label:'Vacant Unit – Bedroom',           group:'Units'},
+  {id:'commercial',   label:'Commercial Unit',                 group:'Units'},
+  {id:'dm_ext',       label:'Exterior Deferred Maintenance',   group:'Deferred'},
+  {id:'ls_ext',       label:'Exterior Life & Safety',          group:'Deferred'},
+  {id:'dm_int',       label:'Interior Deferred Maintenance',   group:'Deferred'},
+  {id:'ls_int',       label:'Interior Life & Safety',          group:'Deferred'},
+  {id:'other',        label:'Other',                           group:'Other'},
+];
+
+// Shortcuts shown in the quick-assign row — most common slots
+const SHORTCUTS = [
+  'broad','signage','addr_verify','front','rear','left','right',
+  'roof','parking','ingress','surrounding','street',
+  'common_int','lobby','boiler','dm_ext','ls_ext','dm_int','other'
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let selectedBank = 'ncb';
+let photos = [];
+let activePhotoIdx = null;
+let gToken = null, tClient = null;
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', ()=>{
+  renderBanks();
+  wireDropZone();
+  renderShortcuts();
+  // Restore saved state
+  const savedBank = localStorage.getItem('ps_bank');
+  if(savedBank){ selectedBank = savedBank; renderBanks(); }
+  const savedAddr = localStorage.getItem('ps_address');
+  if(savedAddr) document.getElementById('address-inp').value = savedAddr;
+  // Google auth
+  setTimeout(()=>{ try{ initGoogle(); }catch(e){} }, 200);
+  // Modal backdrop listeners — must be after DOM exists
+  document.getElementById('slot-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+  document.getElementById('fp-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeFolderPicker();});
+  document.getElementById('lightbox').addEventListener('click',closeLightbox);
+});
+
+// ── BANKS ─────────────────────────────────────────────────────────────────────
+function renderBanks(){
+  document.getElementById('bank-grid').innerHTML = BANKS.map(b=>
+    `<button class="bank-btn${b.id===selectedBank?' active':''}" onclick="selectBank('${b.id}')">${b.name}</button>`
+  ).join('');
+}
+function selectBank(id){
+  selectedBank = id;
+  localStorage.setItem('ps_bank', id);
+  renderBanks();
+  assignSequenceNumbers();
+  renderGrid();
+}
+
+// ── SHORTCUTS ─────────────────────────────────────────────────────────────────
+let _scQuery = '';
+
+function renderShortcuts(){
+  const chipsEl = document.getElementById('sc-chips');
+  if(!chipsEl) return;
+  const p = activePhotoIdx !== null ? photos[activePhotoIdx] : null;
+  const q = _scQuery.toLowerCase().trim();
+
+  const slots = q
+    ? PHOTO_ORDER.filter(s =>
+        s.label.toLowerCase().includes(q) ||
+        s.id.toLowerCase().includes(q) ||
+        s.group.toLowerCase().includes(q))
+    : SHORTCUTS.map(id => PHOTO_ORDER.find(s => s.id === id)).filter(Boolean);
+
+  if(!slots.length){
+    chipsEl.innerHTML = '<span class="sc-no-results">No matches for "'+_scQuery+'" — try DM, roof, unit…</span>';
+    return;
+  }
+
+  chipsEl.innerHTML = slots.map((slot, i) => {
+    const isSel = p && p.slotId === slot.id;
+    const isTop = q && i === 0 && !isSel;
+    const label = slot.label.replace(/'/g, "\'");
+    return '<button class="sc-chip'+(isSel?' sel':'')+(isTop?' first-result':'')+
+      '" onclick="quickAssign(\''+slot.id+'\',\''+label+'\');clearSearch()">'+slot.label+'</button>';
+  }).join('');
+}
+
+function onShortcutSearch(val){
+  _scQuery = val;
+  renderShortcuts();
+}
+
+function onShortcutKey(e){
+  if(e.key === 'Enter'){
+    const q = _scQuery.toLowerCase().trim();
+    if(!q) return;
+    const match = PHOTO_ORDER.find(s =>
+      s.label.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+    if(match){ quickAssign(match.id, match.label); clearSearch(); e.preventDefault(); }
+  }
+  if(e.key === 'Escape') clearSearch();
+}
+
+function clearSearch(){
+  _scQuery = '';
+  const inp = document.getElementById('sc-search');
+  if(inp) inp.value = '';
+  renderShortcuts();
+}
+
+function quickAssign(slotId, slotLabel){
+  if(activePhotoIdx === null) return;
+  const p = photos[activePhotoIdx];
+  p.slotId = slotId;
+  p.slotLabel = slotLabel;
+  if(!p.caption || p.caption === p.slotLabel) p.caption = slotLabel;
+  assignSequenceNumbers();
+  renderGrid();
+  updateCurrentPanel();
+  // Advance to next unassigned
+  setTimeout(()=> advanceToNext(), 120);
+}
+
+// ── DROP ZONE ─────────────────────────────────────────────────────────────────
+function wireDropZone(){
+  const dz = document.getElementById('drop-zone');
+  const fi = document.getElementById('file-input');
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', ()=> dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e=>{ e.preventDefault(); dz.classList.remove('drag-over'); addFiles(e.dataTransfer.files); });
+  fi.addEventListener('change', function(){
+    const files = Array.from(this.files); // copy before clearing — iOS fix
+    this.value = '';
+    if(files.length) addFiles(files);
+  });
+}
+
+function addFiles(files){
+  Array.from(files).forEach(f=>{
+    if(!f.type.startsWith('image/')) return;
+    photos.push({id:Date.now()+''+Math.random(), file:f, url:URL.createObjectURL(f), slotId:'', slotLabel:'', caption:'', seq:null, seqSuffix:''});
+  });
+  if(!photos.length) return;
+  document.getElementById('assign-section').style.display = 'block';
+  document.getElementById('drop-zone').style.display = 'none';
+  // Select first unassigned
+  activePhotoIdx = 0;
+  assignSequenceNumbers();
+  renderGrid();
+  updateCurrentPanel();
+  // Scroll to review panel
+  setTimeout(()=> document.getElementById('current-panel').scrollIntoView({behavior:'smooth',block:'start'}), 100);
+  toast(`${photos.length} photo${photos.length!==1?'s':''} loaded — assign slots to continue`);
+}
+
+// ── CURRENT PANEL ─────────────────────────────────────────────────────────────
+function updateCurrentPanel(){
+  const panel = document.getElementById('current-panel');
+  if(!photos.length || activePhotoIdx === null){ panel.classList.remove('visible'); return; }
+  panel.classList.add('visible');
+
+  const p = photos[activePhotoIdx];
+  document.getElementById('current-img').src = p.url;
+  document.getElementById('current-label').textContent = `Photo ${activePhotoIdx+1} of ${photos.length}`;
+  document.getElementById('current-name').textContent = p.file.name;
+  document.getElementById('current-meta').textContent = p.slotId
+    ? `Seq: ${p.seq ? String(p.seq).padStart(3,'0') : '—'}`
+    : 'Not assigned yet';
+  document.getElementById('current-slot').textContent = p.slotId ? `✓ ${p.slotLabel}` : '';
+  document.getElementById('nav-counter').textContent = `${activePhotoIdx+1} / ${photos.length}`;
+  document.getElementById('prev-btn').disabled = activePhotoIdx <= 0;
+  document.getElementById('next-btn').disabled = activePhotoIdx >= photos.length-1;
+
+  renderShortcuts();
+
+  // Highlight active card in grid and scroll it into view
+  document.querySelectorAll('.photo-card').forEach((c,i)=>{
+    c.classList.toggle('active-card', i === activePhotoIdx);
+  });
+  const activeCard = document.getElementById(`pc-${activePhotoIdx}`);
+  if(activeCard) activeCard.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function navigatePhoto(dir){
+  const newIdx = activePhotoIdx + dir;
+  if(newIdx < 0 || newIdx >= photos.length) return;
+  activePhotoIdx = newIdx;
+  updateCurrentPanel();
+}
+
+function advanceToNext(){
+  // Find next unassigned photo
+  let next = photos.findIndex((p,i) => i > activePhotoIdx && !p.slotId);
+  if(next < 0){
+    // All remaining assigned — find absolute first unassigned
+    next = photos.findIndex(p => !p.slotId);
+  }
+  if(next >= 0 && next !== activePhotoIdx){
+    activePhotoIdx = next;
+  } else if(photos.every(p=>p.slotId)){
+    // All done — stay on last
+    activePhotoIdx = photos.length - 1;
+    toast('🎉 All photos assigned! Ready to upload.','ok');
+  }
+  updateCurrentPanel();
+}
+
+// ── GRID ──────────────────────────────────────────────────────────────────────
+function renderGrid(){
+  const grid = document.getElementById('photo-grid');
+  if(!photos.length){
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">📷</div><div>No photos yet</div></div>';
+    updateSummary(); return;
+  }
+  assignSequenceNumbers();
+  grid.innerHTML = photos.map((p,i)=>{
+    const seqLabel = p.seq ? String(p.seq).padStart(3,'0') : '—';
+    const isActive = i === activePhotoIdx;
+    return `<div class="photo-card ${p.slotId?'assigned':'unassigned'}${isActive?' active-card':''}" id="pc-${i}" onclick="selectPhoto(${i})">
+      <img class="photo-img" src="${p.url}" alt="${p.file.name}" loading="lazy">
+      <div class="photo-badge ${p.slotId?'ok':'pending'}">${seqLabel}</div>
+      <div class="photo-label">
+        <div class="photo-seq">${p.slotId ? seqLabel : 'UNASSIGNED'}</div>
+        <div class="photo-slot">${p.slotLabel || p.file.name}</div>
+        ${p.caption && p.caption !== p.slotLabel ? `<div class="photo-cap">${p.caption}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  updateSummary();
+}
+
+function selectPhoto(idx){
+  activePhotoIdx = idx;
+  updateCurrentPanel();
+  // Scroll to top of review panel
+  document.getElementById('current-panel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function assignSequenceNumbers(){
+  const orderMap = {};
+  PHOTO_ORDER.forEach((s,i)=> orderMap[s.id] = i);
+  const slotCounts = {};
+  photos.forEach(p=>{
+    if(!p.slotId) return;
+    if(!slotCounts[p.slotId]) slotCounts[p.slotId] = 0;
+    p.seq = (orderMap[p.slotId] !== undefined ? orderMap[p.slotId]+1 : PHOTO_ORDER.length+1);
+    p.seqSuffix = slotCounts[p.slotId] > 0 ? String.fromCharCode(97+slotCounts[p.slotId]) : '';
+    slotCounts[p.slotId]++;
+  });
+}
+
+function getFileName(p){
+  const seq = p.seq ? String(p.seq).padStart(3,'0') : '000';
+  const suffix = p.seqSuffix || '';
+  const ext = p.file.type.includes('png') ? 'png' : 'jpg';
+  const capSafe = (p.caption || p.slotLabel || 'PHOTO')
+    .toUpperCase().replace(/[^A-Z0-9\s\-]/g,'').replace(/\s+/g,'-').replace(/-{2,}/g,'-').slice(0,50);
+  return `${seq}${suffix}_${capSafe}.${ext}`;
+}
+
+function updateSummary(){
+  const assigned = photos.filter(p=>p.slotId).length;
+  const unassigned = photos.length - assigned;
+  const pct = photos.length ? Math.round(assigned/photos.length*100) : 0;
+  document.getElementById('summary-bar').innerHTML = `
+    <div class="sum-stat"><div class="sum-num blue">${photos.length}</div><div class="sum-lbl">Total</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat"><div class="sum-num green">${assigned}</div><div class="sum-lbl">Assigned</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat"><div class="sum-num amber">${unassigned}</div><div class="sum-lbl">Remaining</div></div>
+    <div class="sum-divider"></div>
+    <div class="sum-stat" style="flex:1">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:10px;color:var(--muted)">Progress</span>
+        <span style="font-size:10px;font-family:var(--mono);color:var(--accent)">${pct}%</span>
+      </div>
+      <div class="progress-track" style="margin:0"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = !(assigned > 0 && gToken);
+  btn.textContent = gToken ? (assigned > 0 ? `☁️ Upload ${assigned} Photos` : '☁️ Upload to Drive') : '🔒 Connect Google First';
+}
+
+// ── FULL MODAL ────────────────────────────────────────────────────────────────
+function openModal(idx){
+  if(idx === null || idx === undefined) return;
+  activePhotoIdx = idx;
+  const p = photos[idx];
+  document.getElementById('modal-img').src = p.url;
+  document.getElementById('modal-sub').textContent = `Photo ${idx+1} of ${photos.length} — ${p.file.name}`;
+  document.getElementById('cap-input').value = p.caption || '';
+
+  let html = '', lastGroup = '';
+  PHOTO_ORDER.forEach((slot,si)=>{
+    if(slot.group !== lastGroup){
+      html += `<div class="slot-group-label">${slot.group}</div>`;
+      lastGroup = slot.group;
+    }
+    html += `<button class="slot-btn${p.slotId===slot.id?' sel':''}" onclick="selectSlot('${slot.id}','${slot.label.replace(/'/g,"\\'")}')">
+      <span>${slot.label}</span><span class="slot-seq">${String(si+1).padStart(3,'0')}</span>
+    </button>`;
+  });
+  document.getElementById('slot-list').innerHTML = html;
+  document.getElementById('slot-modal').classList.remove('hidden');
+}
+
+function selectSlot(id, label){
+  const p = photos[activePhotoIdx];
+  p.slotId = id; p.slotLabel = label;
+  if(!p.caption || p.caption === p.slotLabel) p.caption = label;
+  document.getElementById('cap-input').value = p.caption;
+  document.querySelectorAll('.slot-btn').forEach(b=>b.classList.toggle('sel', b.querySelector('span')?.textContent===label));
+}
+
+function saveSlot(){
+  if(activePhotoIdx === null) return;
+  photos[activePhotoIdx].caption = document.getElementById('cap-input').value.trim() || photos[activePhotoIdx].slotLabel;
+  closeModal();
+  assignSequenceNumbers();
+  renderGrid();
+  updateCurrentPanel();
+  advanceToNext();
+}
+
+function removePhoto(){
+  if(activePhotoIdx === null) return;
+  URL.revokeObjectURL(photos[activePhotoIdx].url);
+  photos.splice(activePhotoIdx, 1);
+  if(activePhotoIdx >= photos.length) activePhotoIdx = Math.max(0, photos.length-1);
+  if(!photos.length){ document.getElementById('assign-section').style.display='none'; document.getElementById('drop-zone').style.display=''; activePhotoIdx=null; }
+  closeModal();
+  assignSequenceNumbers();
+  renderGrid();
+  updateCurrentPanel();
+}
+
+function closeModal(){
+  document.getElementById('slot-modal').classList.add('hidden');
+}
+
+function clearAll(){
+  if(!confirm('Remove all photos and start over?')) return;
+  photos.forEach(p=>URL.revokeObjectURL(p.url));
+  photos = []; activePhotoIdx = null;
+  document.getElementById('assign-section').style.display = 'none';
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('drop-zone').style.display = '';
+  document.getElementById('current-panel').classList.remove('visible');
+}
+
+// ── LIGHTBOX ──────────────────────────────────────────────────────────────────
+function openLightbox(src){ document.getElementById('lightbox-img').src=src; document.getElementById('lightbox').classList.remove('hidden'); }
+function closeLightbox(){ document.getElementById('lightbox').classList.add('hidden'); }
+
+// ── GOOGLE AUTH ────────────────────────────────────────────────────────────────
+function initGoogle(){
+  if(typeof google==='undefined'){ setTimeout(initGoogle,300); return; }
+  if(tClient) return;
+  tClient = google.accounts.oauth2.initTokenClient({
+    client_id:GCL_ID, scope:DRIVE_SCOPE,
+    callback:r=>{
+      if(r.error) return;
+      gToken = r.access_token;
+      localStorage.setItem('ps_google_hint','connected');
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{'Authorization':'Bearer '+gToken}})
+        .then(res=>res.json()).then(p=>{ if(p.email) localStorage.setItem('ps_google_email',p.email); }).catch(()=>{});
+      updateDriveStatus(true); updateSummary();
+      toast('✅ Connected to Google Drive','ok');
+    }
+  });
+  if(localStorage.getItem('ps_google_hint')){
+    const opts={prompt:''}; const email=localStorage.getItem('ps_google_email');
+    if(email) opts.login_hint=email; tClient.requestAccessToken(opts);
+  }
+}
+function signIn(){
+  if(!tClient){ initGoogle(); setTimeout(signIn,600); return; }
+  const opts={prompt:'consent'}; const email=localStorage.getItem('ps_google_email');
+  if(email) opts.login_hint=email; tClient.requestAccessToken(opts);
+}
+function updateDriveStatus(connected){
+  document.getElementById('drive-dot').className='drive-dot'+(connected?' on':'');
+  document.getElementById('drive-status-txt').textContent=connected?'Drive connected':'Not connected';
+  document.getElementById('connect-btn').className='btn-connect'+(connected?' connected':'');
+  document.getElementById('connect-btn').textContent=connected?'✓ Connected':'Connect Google';
+}
+
+// ── DRIVE API ─────────────────────────────────────────────────────────────────
+async function driveFolder(name, parentId){
+  const q=`name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
+  const res=await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`,{headers:{'Authorization':'Bearer '+gToken}});
+  const data=await res.json();
+  if(data.files&&data.files.length) return data.files[0].id;
+  const cr=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{'Authorization':'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:[parentId]})});
+  return (await cr.json()).id;
+}
+async function driveFile(name, blob, folderId){
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify({name,parents:[folderId]})],{type:'application/json'}));
+  form.append('file',blob);
+  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Authorization':'Bearer '+gToken},body:form});
+  return res.json();
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────────────────────
+// ── FOLDER PICKER ─────────────────────────────────────────────────────────────
+// Lists all subfolders inside the "Photo Sort" Drive folder.
+// Inspector picks one and it becomes the active uploadFolderId.
+
+let _fpFolders = [];        // [{id, name, modifiedTime}]
+let _fpFiltered = [];
+let _fpSelectedId = null;
+let _fpSelectedName = null;
+let _fpAfterDone = false;   // if opened from the done section
+
+async function openFolderPicker(afterDone = false){
+  if(!gToken){ toast('Connect Google Drive first','err'); return; }
+  _fpAfterDone = afterDone;
+  _fpSelectedId = null;
+  _fpSelectedName = null;
+  _fpFolders = [];
+  _fpFiltered = [];
+
+  document.getElementById('fp-modal').classList.remove('hidden');
+  document.getElementById('fp-search').value = '';
+  document.getElementById('fp-confirm-btn').disabled = true;
+  document.getElementById('fp-list').innerHTML = `
+    <div class="fp-spinner">
+      <div class="fp-spinner-dot"></div>
+      <div class="fp-spinner-dot"></div>
+      <div class="fp-spinner-dot"></div>
+      <span>Loading folders…</span>
+    </div>`;
+
+  try{
+    // Find the Photo Sort root folder
+    const rootRes = await fetch('https://www.googleapis.com/drive/v3/files/root?fields=id',
+      {headers:{'Authorization':'Bearer '+gToken}});
+    const root = await rootRes.json();
+    const photoSortId = await driveFolder('Photo Sort', root.id);
+
+    // List all subfolders inside Photo Sort, sorted by modifiedTime desc
+    const q = `'${photoSortId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const listRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=50`,
+      {headers:{'Authorization':'Bearer '+gToken}}
+    );
+    const data = await listRes.json();
+    _fpFolders = data.files || [];
+    _fpFiltered = [..._fpFolders];
+    renderFolderList();
+  }catch(e){
+    document.getElementById('fp-list').innerHTML =
+      `<div class="fp-empty"><div class="fp-empty-icon">⚠️</div><div style="font-size:13px">Could not load folders: ${e.message}</div></div>`;
+  }
+}
+
+function closeFolderPicker(){
+  document.getElementById('fp-modal').classList.add('hidden');
+  _fpSelectedId = null;
+  _fpSelectedName = null;
+}
+
+function filterFolders(q){
+  const lq = q.toLowerCase().trim();
+  _fpFiltered = lq
+    ? _fpFolders.filter(f => f.name.toLowerCase().includes(lq))
+    : [..._fpFolders];
+  renderFolderList();
+}
+
+function renderFolderList(){
+  const list = document.getElementById('fp-list');
+  if(!_fpFiltered.length){
+    list.innerHTML = `<div class="fp-empty">
+      <div class="fp-empty-icon">📂</div>
+      <div style="font-size:13px">${_fpFolders.length ? 'No folders match your search' : 'No Photo Sort subfolders found yet'}</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = _fpFiltered.map(f=>{
+    const isActive = uploadFolderId === f.id;
+    const isSel = _fpSelectedId === f.id;
+    const date = f.modifiedTime ? new Date(f.modifiedTime).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+    return `<div class="fp-item${isSel?' selected':''}" onclick="selectFolder('${f.id}','${f.name.replace(/'/g,"\'")}')">
+      <div class="fp-icon">📁</div>
+      <div style="flex:1;min-width:0">
+        <div class="fp-item-name">${f.name}${isActive?' <span style="font-size:10px;color:var(--accent)">(active)</span>':''}</div>
+        <div class="fp-item-meta">${date}</div>
+      </div>
+      ${isSel ? '<div class="fp-item-check">✓</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function selectFolder(id, name){
+  _fpSelectedId = id;
+  _fpSelectedName = name;
+  renderFolderList();
+  document.getElementById('fp-confirm-btn').disabled = false;
+  document.getElementById('fp-confirm-btn').textContent = `Use "${name}" →`;
+}
+
+function confirmFolderSelection(){
+  if(!_fpSelectedId) return;
+  uploadFolderId = _fpSelectedId;
+
+  // Update the select folder button label
+  const lbl = document.getElementById('select-folder-label');
+  if(lbl) lbl.textContent = `📁 Uploading to: ${_fpSelectedName}`;
+
+  // Enable the upload button
+  const ubtn = document.getElementById('upload-btn');
+  if(ubtn && photos.filter(p=>p.slotId).length > 0){
+    ubtn.disabled = false;
+  }
+
+  closeFolderPicker();
+
+  if(_fpAfterDone){
+    // Came from done screen — trigger add more flow
+    addMorePhotos();
+  } else {
+    toast(`📁 Folder set: ${_fpSelectedName}`, 'ok');
+  }
+}
+
+// ── ADD MORE PHOTOS ───────────────────────────────────────────────────────────
+// Lets inspector add photos to the same Drive folder after an upload completes.
+// Clears assigned photos from the grid, keeps the folder ID, and reopens the
+// drop zone so new photos go into the same session folder.
+
+function addMorePhotos(){
+  if(!uploadFolderId){
+    toast('No active session folder — start a new session','err');
+    return;
+  }
+  // Clear current photo list but keep session state (folder, address, bank)
+  photos.forEach(p => URL.revokeObjectURL(p.url));
+  photos = [];
+  activePhotoIdx = null;
+
+  // Hide upload section, show drop zone again
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('assign-section').style.display = 'none';
+  document.getElementById('current-panel').classList.remove('visible');
+  document.getElementById('drop-zone').style.display = '';
+
+  // Show a banner reminding inspector which folder is active
+  const addr = document.getElementById('address-inp').value.trim();
+  const bankName = BANKS.find(b=>b.id===selectedBank)?.name||'Inspection';
+  const folderLabel = addr ? `${bankName} – ${addr}` : bankName;
+  toast(`Adding to: ${folderLabel}`, 'ok');
+
+  // Scroll to drop zone
+  document.getElementById('drop-zone').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+
+async function startUpload(){
+  const toUpload = photos.filter(p=>p.slotId);
+  if(!toUpload.length){ toast('Assign at least one photo first','err'); return; }
+  if(!gToken){ toast('Connect Google Drive first','err'); return; }
+
+  document.getElementById('upload-section').style.display='block';
+  document.getElementById('upload-done').style.display='none';
+  document.getElementById('upload-btn').disabled=true;
+
+  assignSequenceNumbers();
+  const sorted = [...toUpload].sort((a,b)=>a.seq!==b.seq?a.seq-b.seq:(a.seqSuffix||'')<(b.seqSuffix||'')?-1:1);
+
+  const address = document.getElementById('address-inp').value.trim();
+  const dateStr = new Date().toISOString().slice(0,10);
+  const bankName = BANKS.find(b=>b.id===selectedBank)?.name||'Inspection';
+  const folderName = address
+    ? `${bankName} – ${address} – ${dateStr}`
+    : `${bankName} – ${dateStr}`;
+
+  document.getElementById('upload-folder-desc').innerHTML =
+    `Uploading to <strong>Photo Sort / ${folderName}</strong> — do not close this tab.`;
+
+  document.getElementById('upload-log').innerHTML = sorted.map((p,i)=>
+    `<div class="upload-row" id="urow-${i}">
+      <div class="upload-dot dot-wait" id="udot-${i}"></div>
+      <div class="upload-name">${getFileName(p)}</div>
+      <div class="upload-status-txt" id="utxt-${i}">Waiting</div>
+    </div>`).join('');
+
+  document.getElementById('upload-section').scrollIntoView({behavior:'smooth',block:'start'});
+
+  try{
+    let inspFolderId, folderLink;
+    if(uploadFolderId){
+      // "Add More" flow — reuse the existing session folder, skip creation
+      inspFolderId = uploadFolderId;
+      const fm=await fetch(`https://www.googleapis.com/drive/v3/files/${inspFolderId}?fields=webViewLink`,{headers:{'Authorization':'Bearer '+gToken}});
+      folderLink=(await fm.json()).webViewLink||`https://drive.google.com/drive/folders/${inspFolderId}`;
+    } else {
+      // New session — create Photo Sort / [folder name]
+      const rootRes=await fetch('https://www.googleapis.com/drive/v3/files/root?fields=id',{headers:{'Authorization':'Bearer '+gToken}});
+      const root=await rootRes.json();
+      const photoSortId=await driveFolder('Photo Sort',root.id);
+      inspFolderId=await driveFolder(folderName,photoSortId);
+      uploadFolderId=inspFolderId;
+      const fm=await fetch(`https://www.googleapis.com/drive/v3/files/${inspFolderId}?fields=webViewLink`,{headers:{'Authorization':'Bearer '+gToken}});
+      folderLink=(await fm.json()).webViewLink||`https://drive.google.com/drive/folders/${inspFolderId}`;
+    }
+
+    let done=0;
+    for(let i=0;i<sorted.length;i++){
+      const p=sorted[i];
+      document.getElementById(`udot-${i}`).className='upload-dot dot-active';
+      document.getElementById(`utxt-${i}`).textContent='Uploading…';
+      try{
+        await driveFile(getFileName(p),p.file,inspFolderId);
+        document.getElementById(`udot-${i}`).className='upload-dot dot-done';
+        document.getElementById(`utxt-${i}`).textContent='✓ Done';
+        done++;
+      }catch(e){
+        document.getElementById(`udot-${i}`).className='upload-dot dot-fail';
+        document.getElementById(`utxt-${i}`).textContent='Failed';
+      }
+      document.getElementById('upload-progress').style.width=Math.round((i+1)/sorted.length*100)+'%';
+    }
+
+    document.getElementById('upload-done').style.display='block';
+    document.getElementById('upload-summary-txt').textContent=`${done} of ${sorted.length} photos uploaded to Photo Sort / ${folderName}`;
+    document.getElementById('drive-link').href=folderLink;
+    toast(`✅ ${done} photos uploaded`,'ok');
+  }catch(e){
+    toast('Upload failed: '+e.message,'err');
+    document.getElementById('upload-btn').disabled=false;
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let _tt;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// Wire modal close on backdrop, lightbox close on click
+// All DOM listeners moved inside DOMContentLoaded (elements don't exist before then)
+</script>
+
+<!-- Folder picker modal -->
+<div class="fp-modal-bg hidden" id="fp-modal">
+  <div class="fp-panel">
+    <div class="fp-header">
+      <div>
+        <h4>Select Drive Folder</h4>
+        <p>Choose an existing Photo Sort folder to add photos to</p>
+      </div>
+      <button class="fp-close" onclick="closeFolderPicker()">✕</button>
+    </div>
+    <div class="fp-search-wrap">
+      <span class="fp-search-icon">🔍</span>
+      <input class="fp-search" id="fp-search" placeholder="Filter folders…" oninput="filterFolders(this.value)">
+    </div>
+    <div class="fp-list" id="fp-list">
+      <div class="fp-spinner">
+        <div class="fp-spinner-dot"></div>
+        <div class="fp-spinner-dot"></div>
+        <div class="fp-spinner-dot"></div>
+        <span>Loading folders…</span>
+      </div>
+    </div>
+    <div class="fp-footer">
+      <button class="btn-large btn-large-primary" id="fp-confirm-btn" onclick="confirmFolderSelection()" disabled style="font-size:13px;padding:10px 20px">
+        Use This Folder →
+      </button>
+      <button class="btn-large btn-large-ghost" onclick="closeFolderPicker()" style="font-size:13px;padding:10px 20px">Cancel</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
